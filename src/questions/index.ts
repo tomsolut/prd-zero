@@ -3,12 +3,23 @@ import { askProjectQuestions } from './project.js';
 import { askMVPQuestions } from './mvp.js';
 import { askTimelineQuestions } from './timeline.js';
 import { askTechnicalQuestions } from './technical.js';
+import { askCoreQuestions, coreAnswersToProjectData, enforceTimeBox } from './coreQuestions.js';
 import inquirer from 'inquirer';
 import { Logger } from '../utils/logger.js';
 
 export async function collectAllQuestions(sessionStartTime: Date): Promise<PRDData> {
-  const project = await askProjectQuestions();
-  const mvp = await askMVPQuestions();
+  // Start with core questions (Phase 2)
+  const coreAnswers = await askCoreQuestions();
+  const { project: coreProject, mvp: coreMvp } = coreAnswersToProjectData(coreAnswers);
+  
+  // Check time box after core questions
+  if (enforceTimeBox(sessionStartTime, 15)) {
+    Logger.warning('Core questions took too long. Switching to rapid mode.');
+  }
+  
+  // Continue with detailed questions, pre-filling with core answers
+  const project = await askProjectQuestions(coreProject);
+  const mvp = await askMVPQuestions(coreMvp);
   const timeline = await askTimelineQuestions();
   const { techStack, risks } = await askTechnicalQuestions();
 

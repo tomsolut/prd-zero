@@ -7,8 +7,11 @@ export interface ProjectInfo {
 }
 
 export interface MVPScope {
+  problemStatement: string;
+  solutionApproach: string;
   coreFeatures: string[];
   nonGoals: string[];
+  outOfScope: string[];
   successMetrics: string[];
   constraints: string[];
 }
