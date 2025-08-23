@@ -219,14 +219,14 @@ async function askSessionType(): Promise<string> {
     {
       type: 'list',
       name: 'type',
-      message: 'Choose session type:',
+      message: 'Wählen Sie den Sitzungstyp:',
       choices: [
         {
-          name: 'Complete Planning (45-70 minutes) - Comprehensive PRD with all details',
+          name: 'Vollständige Planung (45-70 Minuten) - Umfassendes PRD mit allen Details',
           value: 'complete',
         },
         {
-          name: 'Quick Start (10-15 minutes) - Essential information only',
+          name: 'Schnellstart (10-15 Minuten) - Nur wesentliche Informationen',
           value: 'quick',
         },
       ],
@@ -446,51 +446,51 @@ async function collectAllQuestionsWithAI(sessionStartTime: Date, aiFlow: any): P
 }
 
 async function askQuickStartQuestionsWithAI(sessionStartTime: Date, aiFlow: any): Promise<PRDData> {
-  Logger.title('QUICK START MODE WITH AI');
+  Logger.title('QUICK START MODUS MIT KI');
   
   // Project Questions with AI
-  Logger.section('Project Information');
+  Logger.section('Projektinformationen');
   
   const projectName = await aiFlow.askWithAI(
-    'What is the name of your project?',
-    (v: string) => v.length >= 2 || 'Project name must be at least 2 characters'
+    'Wie lautet der Name Ihres Projekts?',
+    (v: string) => v.length >= 2 || 'Projektname muss mindestens 2 Zeichen lang sein'
   );
   
   const description = await aiFlow.askWithAI(
-    'Describe your project in 2-3 sentences:',
-    (v: string) => v.length >= 10 || 'Please provide a more detailed description (min 10 chars)'
+    'Beschreiben Sie Ihr Projekt in 2-3 Sätzen:',
+    (v: string) => v.length >= 10 || 'Bitte geben Sie eine detailliertere Beschreibung (min. 10 Zeichen)'
   );
   
   const targetAudience = await aiFlow.askWithAI(
-    'Who is your target audience?',
-    (v: string) => v.length >= 10 || 'Please be more specific about your target audience'
+    'Wer ist Ihre Zielgruppe?',
+    (v: string) => v.length >= 10 || 'Bitte seien Sie spezifischer bei Ihrer Zielgruppe'
   );
   
   const problem = await aiFlow.askWithAI(
-    'What problem does your project solve?',
-    (v: string) => v.length >= 20 || 'Please provide a more detailed problem statement (min 20 chars)'
+    'Welches Problem löst Ihr Projekt?',
+    (v: string) => v.length >= 20 || 'Bitte geben Sie eine detailliertere Problembeschreibung (min. 20 Zeichen)'
   );
   
   const uniqueValue = await aiFlow.askWithAI(
-    'What makes your solution unique?',
-    (v: string) => v.length >= 10 || 'Please describe what makes your solution unique'
+    'Was macht Ihre Lösung einzigartig?',
+    (v: string) => v.length >= 10 || 'Bitte beschreiben Sie, was Ihre Lösung einzigartig macht'
   );
   
   // MVP Questions with AI
-  Logger.section('MVP Scope Definition');
+  Logger.section('MVP-Umfang');
   
   const numFeaturesStr = await aiFlow.askWithAI(
-    'How many core features will your MVP have? (3-5 recommended for true MVP):',
+    'Wie viele Kernfunktionen soll Ihr MVP haben? (3-5 empfohlen für echtes MVP):',
     (v: string) => {
       const num = parseInt(v);
-      return (!isNaN(num) && num >= 1 && num <= 10) || 'Please enter a number between 1 and 10';
+      return (!isNaN(num) && num >= 1 && num <= 10) || 'Bitte geben Sie eine Zahl zwischen 1 und 10 ein';
     },
     '3'
   );
   const numFeatures = parseInt(numFeaturesStr);
   
   const coreFeatures = await aiFlow.askListWithAI(
-    `List your ${numFeatures} core MVP features:`,
+    `Listen Sie Ihre ${numFeatures} MVP-Kernfunktionen auf:`,
     {
       minItems: numFeatures,
       maxItems: numFeatures,
@@ -499,7 +499,7 @@ async function askQuickStartQuestionsWithAI(sessionStartTime: Date, aiFlow: any)
   );
   
   const successMetrics = await aiFlow.askListWithAI(
-    'List 2-3 success metrics (how will you measure success?):',
+    'Listen Sie 2-3 Erfolgsmetriken auf (wie messen Sie den Erfolg?):',
     {
       minItems: 2,
       maxItems: 3,
@@ -508,22 +508,22 @@ async function askQuickStartQuestionsWithAI(sessionStartTime: Date, aiFlow: any)
   );
   
   // Timeline with AI
-  Logger.section('Timeline');
+  Logger.section('Zeitplan');
   
   const timelineWeeks = await aiFlow.askWithAI(
-    'How many weeks to build the MVP? (be realistic):',
+    'Wie viele Wochen für die MVP-Entwicklung? (seien Sie realistisch):',
     (v: string) => {
       const weeks = parseInt(v);
-      return (!isNaN(weeks) && weeks >= 2 && weeks <= 52) || 'Please enter a number between 2 and 52 weeks';
+      return (!isNaN(weeks) && weeks >= 2 && weeks <= 52) || 'Bitte geben Sie eine Zahl zwischen 2 und 52 Wochen ein';
     },
     '8'
   );
   
   // Risks with AI
-  Logger.section('Risk Assessment');
+  Logger.section('Risikobewertung');
   
   const risks = await aiFlow.askListWithAI(
-    'List 2-3 main risks for this project:',
+    'Listen Sie 2-3 Hauptrisiken für dieses Projekt auf:',
     {
       minItems: 2,
       maxItems: 3,

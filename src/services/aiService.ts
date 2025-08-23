@@ -97,24 +97,49 @@ export class AIService {
   }
 
   /**
+   * Detect language from text
+   */
+  private detectLanguage(text: string): 'de' | 'en' {
+    // Simple German detection based on common German words and characters
+    const germanIndicators = [
+      'der', 'die', 'das', 'ich', 'du', 'sie', 'wir', 'ihr', 'und', 'oder', 'aber',
+      'für', 'mit', 'von', 'zu', 'bei', 'nach', 'aus', 'können', 'müssen', 'werden',
+      'ä', 'ö', 'ü', 'ß', 'Ä', 'Ö', 'Ü'
+    ];
+    
+    const lowerText = text.toLowerCase();
+    const germanMatches = germanIndicators.filter(indicator => lowerText.includes(indicator)).length;
+    
+    return germanMatches >= 2 ? 'de' : 'en';
+  }
+
+  /**
    * Make API call with tracking
    */
-  private async callClaude(prompt: string, system?: string): Promise<AIResponse | null> {
+  private async callClaude(prompt: string, system?: string, forceLanguage?: 'de' | 'en'): Promise<AIResponse | null> {
     if (!this.isEnabled || !this.client) {
       return null;
     }
 
     if (!this.checkBudget()) {
-      Logger.error('Budget exceeded. Skipping AI call.');
+      Logger.error('Budget überschritten. KI-Aufruf wird übersprungen.');
       return null;
     }
+
+    // Detect language from prompt if not forced
+    const language = forceLanguage || this.detectLanguage(prompt);
+    
+    // Set system message based on language
+    const systemMessage = system || (language === 'de' 
+      ? 'Du bist ein erfahrener Produktberater, der Solo-Entwicklern hilft, bessere MVPs zu erstellen. Antworte auf Deutsch. Sei präzise aber einsichtsvoll.'
+      : 'You are an expert product consultant helping solo developers create better MVPs. Be concise but insightful.');
 
     try {
       const response = await this.client.messages.create({
         model: this.config.model,
         max_tokens: this.config.maxTokens,
         temperature: this.config.temperature,
-        system: system || 'You are an expert product consultant helping solo developers create better MVPs. Be concise but insightful.',
+        system: systemMessage,
         messages: [{ role: 'user', content: prompt }],
       });
 
@@ -156,7 +181,24 @@ export class AIService {
    * Challenge a user's answer
    */
   public async challengeAnswer(question: string, answer: string): Promise<{ feedback: string; suggestion?: string } | null> {
-    const prompt = `
+    const language = this.detectLanguage(answer + ' ' + question);
+    
+    const prompt = language === 'de' ? `
+Gestellte Frage: "${question}"
+Antwort des Nutzers: "${answer}"
+
+Als Produktberater, bewerte diese Antwort kritisch.
+
+Gib ein JSON-Objekt zurück mit:
+{
+  "feedback": "Kurze Erklärung, was verbessert werden könnte (sei freundlich aber direkt, max. 100 Wörter)",
+  "suggestion": "Eine vollständige, verbesserte Version der Antwort, die die Probleme behebt" (nur wenn Verbesserung nötig)
+}
+
+Wenn die Antwort bereits ausgezeichnet ist, gib zurück:
+{
+  "feedback": "Gute Antwort! [kurze Erklärung warum]"
+}` : `
 Question asked: "${question}"
 User's answer: "${answer}"
 
@@ -173,7 +215,7 @@ If the answer is already excellent, return:
   "feedback": "Good answer! [brief explanation why]"
 }`;
 
-    const response = await this.callClaude(prompt);
+    const response = await this.callClaude(prompt, undefined, language);
     
     if (response) {
       this.recordInteraction('challenge', question, prompt, response.content, response.tokensUsed, response.cost);
@@ -193,7 +235,15 @@ If the answer is already excellent, return:
    * Suggest improvements for an answer
    */
   public async suggestImprovement(question: string, answer: string): Promise<string | null> {
-    const prompt = `
+    const language = this.detectLanguage(answer + ' ' + question);
+    
+    const prompt = language === 'de' ? `
+Frage: "${question}"
+Antwort: "${answer}"
+
+Erstelle eine vollständige, verbesserte Version dieser Antwort, die dieselbe Frage beantwortet, aber mit besserer Spezifität, Messbarkeit und Klarheit für einen MVP-Plan.
+
+Gib die verbesserte Antwort direkt ohne Präfix oder Erklärung zurück. Mache sie konkret und umsetzbar.` : `
 Question: "${question}"
 Answer: "${answer}"
 
@@ -201,7 +251,7 @@ Provide a complete, improved version of this answer that addresses the same ques
 
 Return the improved answer directly without any prefix or explanation. Make it concrete and actionable.`;
 
-    const response = await this.callClaude(prompt);
+    const response = await this.callClaude(prompt, undefined, language);
     
     if (response) {
       this.recordInteraction('suggest', question, prompt, response.content, response.tokensUsed, response.cost);

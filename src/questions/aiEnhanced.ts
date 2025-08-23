@@ -61,12 +61,12 @@ export class AIEnhancedQuestions {
       const challenge = await this.aiService.challengeAnswer(question, answer);
       
       if (challenge && challenge.feedback) {
-        Logger.info(chalk.yellow('🤖 AI Feedback:'));
+        Logger.info(chalk.yellow('🤖 KI-Feedback:'));
         Logger.info(challenge.feedback);
         this.analytics.aiInterventions++;
         
         if (challenge.suggestion) {
-          Logger.info(chalk.yellow('\n🤖 AI Improved Version:'));
+          Logger.info(chalk.yellow('\n🤖 KI-Verbesserte Version:'));
           Logger.info(chalk.gray('─'.repeat(60)));
           Logger.info(challenge.suggestion);
           Logger.info(chalk.gray('─'.repeat(60)));
@@ -74,24 +74,24 @@ export class AIEnhancedQuestions {
           const { action } = await inquirer.prompt([{
             type: 'list',
             name: 'action',
-            message: chalk.yellow('How would you like to proceed?'),
+            message: chalk.yellow('Wie möchten Sie fortfahren?'),
             choices: [
-              { name: 'Keep my original answer', value: 'keep' },
-              { name: 'Use the AI improved version', value: 'use' },
-              { name: 'Edit my answer manually', value: 'edit' }
+              { name: 'Meine ursprüngliche Antwort behalten', value: 'keep' },
+              { name: 'Die KI-verbesserte Version verwenden', value: 'use' },
+              { name: 'Meine Antwort manuell bearbeiten', value: 'edit' }
             ],
             default: 'keep'
           }]);
 
           if (action === 'use') {
             answer = challenge.suggestion;
-            Logger.success('✅ Using AI-improved answer');
+            Logger.success('✅ Verwende KI-verbesserte Antwort');
           } else if (action === 'edit') {
             const revisedOptions: FlexibleInputOptions = {
               defaultValue: answer
             };
             answer = await askFlexibleInput(
-              'Please provide your revised answer:',
+              'Bitte geben Sie Ihre überarbeitete Antwort ein:',
               revisedOptions
             );
           }
@@ -102,7 +102,7 @@ export class AIEnhancedQuestions {
     // AI Suggestions in both modes
     const suggestion = await this.aiService.suggestImprovement(question, answer);
     if (suggestion) {
-      Logger.info(chalk.cyan('🤖 AI Suggested Answer:'));
+      Logger.info(chalk.cyan('🤖 KI-Vorgeschlagene Antwort:'));
       Logger.info(chalk.gray('─'.repeat(60)));
       Logger.info(suggestion);
       Logger.info(chalk.gray('─'.repeat(60)));
@@ -112,24 +112,24 @@ export class AIEnhancedQuestions {
       const { action } = await inquirer.prompt([{
         type: 'list',
         name: 'action',
-        message: chalk.cyan('How would you like to proceed?'),
+        message: chalk.cyan('Wie möchten Sie fortfahren?'),
         choices: [
-          { name: 'Keep my original answer', value: 'keep' },
-          { name: 'Use the AI suggestion', value: 'use' },
-          { name: 'Edit my answer manually', value: 'edit' }
+          { name: 'Meine ursprüngliche Antwort behalten', value: 'keep' },
+          { name: 'Den KI-Vorschlag verwenden', value: 'use' },
+          { name: 'Meine Antwort manuell bearbeiten', value: 'edit' }
         ],
         default: 'keep'
       }]);
 
       if (action === 'use') {
         answer = suggestion;
-        Logger.success('✅ Using AI-suggested answer');
+        Logger.success('✅ Verwende KI-vorgeschlagene Antwort');
       } else if (action === 'edit') {
         const revisedOptions: FlexibleInputOptions = {
           defaultValue: answer
         };
         answer = await askFlexibleInput(
-          'Please provide your revised answer:',
+          'Bitte geben Sie Ihre überarbeitete Antwort ein:',
           revisedOptions
         );
       }
@@ -269,7 +269,7 @@ export class AIEnhancedQuestions {
     const metrics = this.aiService.getUsageMetrics();
     if (metrics.apiCalls > 0) {
       Logger.info(
-        chalk.gray(`💰 Session cost so far: $${metrics.estimatedCost.toFixed(4)} (${metrics.totalTokensUsed} tokens)`)
+        chalk.gray(`💰 Bisherige Sitzungskosten: $${metrics.estimatedCost.toFixed(4)} (${metrics.totalTokensUsed} Tokens)`)
       );
     }
   }
@@ -314,17 +314,17 @@ export async function createAIEnhancedFlow(
   
   // Check if API key is configured
   if (aiMode !== 'off' && !process.env.ANTHROPIC_API_KEY) {
-    Logger.warning('⚠️  No ANTHROPIC_API_KEY found in environment');
-    Logger.info('   AI features will be disabled. Add your key to .env file to enable.');
+    Logger.warning('⚠️  Kein ANTHROPIC_API_KEY in der Umgebung gefunden');
+    Logger.info('   KI-Funktionen werden deaktiviert. Fügen Sie Ihren Schlüssel zur .env-Datei hinzu.');
     return new AIEnhancedQuestions(sessionId, 'off', false);
   }
   
   if (aiMode !== 'off') {
-    Logger.success(`🤖 AI Mode: ${chalk.cyan(aiMode.toUpperCase())}`);
+    Logger.success(`🤖 KI-Modus: ${chalk.cyan(aiMode === 'active' ? 'AKTIV' : 'PASSIV')}`);
     Logger.info(
       aiMode === 'active' 
-        ? '   AI will actively challenge and suggest improvements'
-        : '   AI will passively provide suggestions'
+        ? '   KI wird aktiv Ihre Antworten hinterfragen und Verbesserungen vorschlagen'
+        : '   KI wird passiv Verbesserungsvorschläge machen'
     );
   }
   
