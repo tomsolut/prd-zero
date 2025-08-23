@@ -13,6 +13,29 @@ export class FileSystem {
     }
   }
 
+  /**
+   * Create a session-specific output directory
+   */
+  static createSessionDirectory(baseOutputDir: string): string {
+    const timestamp = new Date().toISOString()
+      .replace(/[:.]/g, '-')
+      .replace('T', '_')
+      .slice(0, -5); // Remove milliseconds and Z
+    
+    const sessionDir = `session_${timestamp}`;
+    return path.join(baseOutputDir, sessionDir);
+  }
+
+  /**
+   * Ensure session directory exists and return path
+   */
+  static async ensureSessionDirectory(baseOutputDir: string): Promise<string> {
+    const sessionPath = this.createSessionDirectory(baseOutputDir);
+    await this.ensureDirectory(sessionPath);
+    Logger.info(`Session output directory: ${sessionPath}`);
+    return sessionPath;
+  }
+
   static async writeFile(filePath: string, content: string): Promise<void> {
     try {
       const dir = path.dirname(filePath);
@@ -62,5 +85,18 @@ export class FileSystem {
 
   static getOutputPath(outputDir: string, fileName: string): string {
     return path.join(outputDir, fileName);
+  }
+
+  /**
+   * Get file size in KB
+   */
+  static async getFileSizeKB(filePath: string): Promise<number> {
+    try {
+      const stats = await fs.stat(filePath);
+      return stats.size / 1024; // Convert bytes to KB
+    } catch (error) {
+      Logger.error(`Failed to get file size: ${filePath}`);
+      return 0;
+    }
   }
 }
