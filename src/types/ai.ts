@@ -4,7 +4,7 @@
 
 export interface AIConfig {
   apiKey: string;
-  model: 'claude-3-5-sonnet-20241022' | 'claude-3-opus-20240229' | 'claude-3-haiku-20240307';
+  model: 'claude-3-5-sonnet-latest' | 'claude-3-5-sonnet-20241022' | 'claude-3-opus-20240229' | 'claude-3-haiku-20240307';
   maxTokens: number;
   temperature: number;
   maxBudget?: number; // Maximum budget in USD
@@ -83,6 +83,11 @@ export interface SessionCostBreakdown {
 
 // Claude model pricing (as of 2024)
 export const CLAUDE_PRICING: Record<string, TokenPricing> = {
+  'claude-3-5-sonnet-latest': {
+    model: 'Claude 3.5 Sonnet (Latest)',
+    inputPricePerMillion: 3.00,
+    outputPricePerMillion: 15.00,
+  },
   'claude-3-5-sonnet-20241022': {
     model: 'Claude 3.5 Sonnet',
     inputPricePerMillion: 3.00,

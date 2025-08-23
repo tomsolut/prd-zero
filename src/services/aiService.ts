@@ -27,7 +27,7 @@ export class AIService {
     
     this.config = {
       apiKey,
-      model: config?.model || 'claude-3-5-sonnet-20241022',
+      model: config?.model || 'claude-3-5-sonnet-latest',
       maxTokens: config?.maxTokens || 4096,
       temperature: config?.temperature || 0.7,
       maxBudget: config?.maxBudget || 5.00,
