@@ -60,26 +60,41 @@ export class AIEnhancedQuestions {
     if (this.aiMode === 'active') {
       const challenge = await this.aiService.challengeAnswer(question, answer);
       
-      if (challenge) {
-        Logger.info(chalk.yellow('🤖 AI Challenge:'));
-        Logger.info(challenge);
+      if (challenge && challenge.feedback) {
+        Logger.info(chalk.yellow('🤖 AI Feedback:'));
+        Logger.info(challenge.feedback);
         this.analytics.aiInterventions++;
         
-        const { reconsider } = await inquirer.prompt([{
-          type: 'confirm',
-          name: 'reconsider',
-          message: chalk.yellow('Would you like to reconsider your answer?'),
-          default: false
-        }]);
+        if (challenge.suggestion) {
+          Logger.info(chalk.yellow('\n🤖 AI Improved Version:'));
+          Logger.info(chalk.gray('─'.repeat(60)));
+          Logger.info(challenge.suggestion);
+          Logger.info(chalk.gray('─'.repeat(60)));
+          
+          const { action } = await inquirer.prompt([{
+            type: 'list',
+            name: 'action',
+            message: chalk.yellow('How would you like to proceed?'),
+            choices: [
+              { name: 'Keep my original answer', value: 'keep' },
+              { name: 'Use the AI improved version', value: 'use' },
+              { name: 'Edit my answer manually', value: 'edit' }
+            ],
+            default: 'keep'
+          }]);
 
-        if (reconsider) {
-          const revisedOptions: FlexibleInputOptions = {
-            defaultValue: answer
-          };
-          answer = await askFlexibleInput(
-            'Please provide your revised answer:',
-            revisedOptions
-          );
+          if (action === 'use') {
+            answer = challenge.suggestion;
+            Logger.success('✅ Using AI-improved answer');
+          } else if (action === 'edit') {
+            const revisedOptions: FlexibleInputOptions = {
+              defaultValue: answer
+            };
+            answer = await askFlexibleInput(
+              'Please provide your revised answer:',
+              revisedOptions
+            );
+          }
         }
       }
     }
@@ -87,21 +102,36 @@ export class AIEnhancedQuestions {
     // AI Suggestions in both modes
     const suggestion = await this.aiService.suggestImprovement(question, answer);
     if (suggestion) {
-      Logger.info(chalk.cyan('🤖 AI Suggestion:'));
+      Logger.info(chalk.cyan('🤖 AI Suggested Answer:'));
+      Logger.info(chalk.gray('─'.repeat(60)));
       Logger.info(suggestion);
+      Logger.info(chalk.gray('─'.repeat(60)));
       this.analytics.aiInterventions++;
       
-      if (this.aiMode === 'active') {
-        const { useSuggestion } = await inquirer.prompt([{
-          type: 'confirm',
-          name: 'useSuggestion',
-          message: chalk.cyan('Would you like to use the AI suggestion?'),
-          default: false
-        }]);
+      // In both active and passive modes, offer to use the suggestion
+      const { action } = await inquirer.prompt([{
+        type: 'list',
+        name: 'action',
+        message: chalk.cyan('How would you like to proceed?'),
+        choices: [
+          { name: 'Keep my original answer', value: 'keep' },
+          { name: 'Use the AI suggestion', value: 'use' },
+          { name: 'Edit my answer manually', value: 'edit' }
+        ],
+        default: 'keep'
+      }]);
 
-        if (useSuggestion) {
-          answer = suggestion;
-        }
+      if (action === 'use') {
+        answer = suggestion;
+        Logger.success('✅ Using AI-suggested answer');
+      } else if (action === 'edit') {
+        const revisedOptions: FlexibleInputOptions = {
+          defaultValue: answer
+        };
+        answer = await askFlexibleInput(
+          'Please provide your revised answer:',
+          revisedOptions
+        );
       }
     }
 

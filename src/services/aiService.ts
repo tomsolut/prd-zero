@@ -155,27 +155,38 @@ export class AIService {
   /**
    * Challenge a user's answer
    */
-  public async challengeAnswer(question: string, answer: string): Promise<string | null> {
+  public async challengeAnswer(question: string, answer: string): Promise<{ feedback: string; suggestion?: string } | null> {
     const prompt = `
 Question asked: "${question}"
 User's answer: "${answer}"
 
-As a product consultant, critically evaluate this answer. If it's vague, unmeasurable, or could be improved:
-1. Point out the specific issue (be kind but direct)
-2. Suggest a concrete improvement
-3. Give an example of a better answer
+As a product consultant, critically evaluate this answer. 
 
-If the answer is already good, say "Good answer!" and explain why briefly.
+Return a JSON object with:
+{
+  "feedback": "Brief explanation of what could be improved (be kind but direct, max 100 words)",
+  "suggestion": "A complete, improved version of the answer that addresses the issues" (only if improvement needed)
+}
 
-Keep response under 100 words.`;
+If the answer is already excellent, return:
+{
+  "feedback": "Good answer! [brief explanation why]"
+}`;
 
     const response = await this.callClaude(prompt);
     
     if (response) {
       this.recordInteraction('challenge', question, prompt, response.content, response.tokensUsed, response.cost);
+      
+      try {
+        return JSON.parse(response.content);
+      } catch {
+        // Fallback if not valid JSON
+        return { feedback: response.content };
+      }
     }
     
-    return response?.content || null;
+    return null;
   }
 
   /**
@@ -186,9 +197,9 @@ Keep response under 100 words.`;
 Question: "${question}"
 Answer: "${answer}"
 
-Suggest ONE specific improvement to make this answer better for an MVP plan.
-Format: "Consider: [specific suggestion]"
-Keep it under 50 words.`;
+Provide a complete, improved version of this answer that addresses the same question but with better specificity, measurability, and clarity for an MVP plan.
+
+Return the improved answer directly without any prefix or explanation. Make it concrete and actionable.`;
 
     const response = await this.callClaude(prompt);
     
