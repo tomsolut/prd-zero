@@ -8,6 +8,7 @@ import { PRDGenerator } from '../generators/prd.js';
 import { RoadmapGenerator } from '../generators/roadmap.js';
 import { PRDData } from '../types/index.js';
 import { Validator } from '../validators/index.js';
+import { runInteractiveValidation } from '../validators/validationIntegrator.js';
 
 interface InitOptions {
   output: string;
@@ -57,6 +58,26 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
     // Stop the timer
     timer.stop();
+
+    // Run validation before generating documents
+    Logger.title('Validating Your Plan');
+    const validationPassed = await runInteractiveValidation(prdData);
+    
+    if (!validationPassed) {
+      const continueAnyway = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'continue',
+          message: 'Do you want to generate documents despite validation warnings?',
+          default: false,
+        },
+      ]);
+      
+      if (!continueAnyway.continue) {
+        Logger.info('Session cancelled. Please refine your plan and try again.');
+        return;
+      }
+    }
 
     // Generate outputs
     Logger.title('Generating Documents');
