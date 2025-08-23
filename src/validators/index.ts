@@ -8,7 +8,7 @@ export class Validator {
     } catch (error) {
       if (error instanceof z.ZodError) {
         Logger.error('Validation failed:');
-        error.errors.forEach(err => {
+        error.issues.forEach((err: z.ZodIssue) => {
           Logger.item(`${err.path.join('.')}: ${err.message}`);
         });
         throw new Error('Validation failed. Please check your inputs.');
@@ -17,13 +17,13 @@ export class Validator {
     }
   }
 
-  static validatePartial<T>(schema: z.ZodSchema<T>, data: unknown): Partial<T> {
+  static validatePartial<T>(schema: z.ZodObject<any>, data: unknown): Partial<T> {
     try {
-      return schema.partial().parse(data);
+      return schema.partial().parse(data) as Partial<T>;
     } catch (error) {
       if (error instanceof z.ZodError) {
         Logger.error('Partial validation failed:');
-        error.errors.forEach(err => {
+        error.issues.forEach((err: z.ZodIssue) => {
           Logger.item(`${err.path.join('.')}: ${err.message}`);
         });
         throw new Error('Validation failed. Please check your inputs.');

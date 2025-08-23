@@ -1,7 +1,6 @@
 import inquirer from 'inquirer';
 import { Timeline, Phase, Milestone } from '../types/index.js';
 import { Logger } from '../utils/logger.js';
-import { Validator } from '../validators/index.js';
 
 export async function askTimelineQuestions(): Promise<Timeline> {
   Logger.section('Timeline & Milestones');

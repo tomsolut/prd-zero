@@ -3,7 +3,6 @@ import inquirer from 'inquirer';
 import { Logger } from '../utils/logger.js';
 import { Spinner } from '../utils/spinner.js';
 import { SessionTimer } from '../utils/timer.js';
-import { FileSystem } from '../utils/fileSystem.js';
 import { collectAllQuestions, askQuickStartQuestions } from '../questions/index.js';
 import { PRDGenerator } from '../generators/prd.js';
 import { RoadmapGenerator } from '../generators/roadmap.js';
@@ -29,10 +28,9 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
     // Initialize session timer
     const timer = new SessionTimer(timeLimit);
-    let timerInterval: NodeJS.Timeout | null = null;
 
     // Start timer with status updates
-    timer.start((elapsed, remaining) => {
+    timer.start((_elapsed, remaining) => {
       if (remaining % 5 === 0 && remaining > 0 && remaining !== timeLimit) {
         process.stdout.write(`\r${Logger.timer(Math.floor(remaining), Math.floor((remaining % 1) * 60))}`);
       }

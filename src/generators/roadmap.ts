@@ -1,5 +1,5 @@
 import Handlebars from 'handlebars';
-import { PRDData, Timeline } from '../types/index.js';
+import { PRDData } from '../types/index.js';
 import { FileSystem } from '../utils/fileSystem.js';
 import { Logger } from '../utils/logger.js';
 

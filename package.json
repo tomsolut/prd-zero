@@ -1,6 +1,7 @@
 {
   "name": "prd-zero",
   "version": "1.0.0",
+  "type": "module",
   "description": "MVP planning tool for solo developers - from idea to PRD in 70 minutes",
   "main": "dist/index.js",
   "bin": {

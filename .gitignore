@@ -14,7 +14,7 @@ build/
 outputs/
 *.prd.md
 *.roadmap.md
-*.json
+outputs/*.json
 
 # IDE
 .vscode/

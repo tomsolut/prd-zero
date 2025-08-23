@@ -2,7 +2,6 @@ import Handlebars from 'handlebars';
 import { PRDData } from '../types/index.js';
 import { FileSystem } from '../utils/fileSystem.js';
 import { Logger } from '../utils/logger.js';
-import * as path from 'path';
 
 const DEFAULT_TEMPLATE = `# Product Requirements Document (PRD)
 
