@@ -11,7 +11,7 @@ export class CostReportGenerator {
   /**
    * Generate cost report markdown
    */
-  static generateCostReport(metrics: AIUsageMetrics, analytics: SessionAnalytics): string {
+  static generateCostReport(metrics: AIUsageMetrics, analytics: any): string {
     const duration = metrics.endTime 
       ? (metrics.endTime.getTime() - metrics.startTime.getTime()) / 60000 
       : 0;
@@ -117,7 +117,7 @@ ${this.generateRecommendations(metrics, analytics)}
   /**
    * Generate JSON cost report
    */
-  static generateCostJSON(metrics: AIUsageMetrics, analytics: SessionAnalytics): object {
+  static generateCostJSON(metrics: AIUsageMetrics, analytics: any): object {
     const costByType: Record<string, number> = {};
     const tokensByType: Record<string, { input: number; output: number }> = {};
     

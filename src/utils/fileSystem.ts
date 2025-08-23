@@ -48,6 +48,17 @@ export class FileSystem {
     }
   }
 
+  static async saveFile(outputDir: string, fileName: string, content: string): Promise<string> {
+    await this.ensureDirectory(outputDir);
+    const filePath = path.join(outputDir, fileName);
+    await this.writeFile(filePath, content);
+    return filePath;
+  }
+
+  static async ensureDirectoryExists(dirPath: string): Promise<void> {
+    await this.ensureDirectory(dirPath);
+  }
+
   static async readFile(filePath: string): Promise<string> {
     try {
       const content = await fs.readFile(filePath, 'utf-8');

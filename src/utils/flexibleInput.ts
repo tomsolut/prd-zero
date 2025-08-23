@@ -6,7 +6,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { Logger } from './logger.js';
 
-interface FlexibleInputOptions {
+export interface FlexibleInputOptions {
   minLength?: number;
   maxLength?: number;
   multiline?: boolean;

@@ -26,7 +26,7 @@ export interface AIUsageMetrics {
 
 export interface AIInteraction {
   timestamp: Date;
-  type: 'challenge' | 'optimize' | 'suggest' | 'validate' | 'enhance';
+  type: 'challenge' | 'optimize' | 'suggest' | 'validate' | 'enhance' | 'list_suggestion' | 'validation';
   context: string;
   prompt: string;
   response: string;
@@ -102,6 +102,7 @@ export const CLAUDE_PRICING: Record<string, TokenPricing> = {
 
 export interface AIOptimizationResult {
   original: string;
+  content: string; // The optimized content
   optimized: string;
   improvements: string[];
   confidenceScore: number;
@@ -111,10 +112,10 @@ export interface AIOptimizationResult {
 
 export interface AIValidationResult {
   isValid: boolean;
-  score: number; // 0-100
+  score?: number; // 0-100
   issues: string[];
   suggestions: string[];
-  criticalProblems: string[];
-  tokensUsed: number;
-  cost: number;
+  criticalProblems?: string[];
+  tokensUsed?: number;
+  cost?: number;
 }

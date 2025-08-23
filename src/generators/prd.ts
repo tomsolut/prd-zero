@@ -194,6 +194,12 @@ export class PRDGenerator {
     return this.template(context);
   }
 
+  async saveContent(content: string, outputDir: string, fileName: string): Promise<string> {
+    const filePath = await FileSystem.saveFile(outputDir, fileName, content);
+    Logger.success(`PRD saved to: ${filePath}`);
+    return filePath;
+  }
+
   async save(data: PRDData, outputDir: string): Promise<string> {
     const content = this.generate(data);
     const fileName = FileSystem.generateFileName(

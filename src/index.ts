@@ -19,6 +19,7 @@ program
   .option('-o, --output <path>', 'output directory for generated files', './outputs')
   .option('-t, --time-limit <minutes>', 'session time limit in minutes', '70')
   .option('--ai', 'enable AI-powered suggestions (requires API key)')
+  .option('--ai-mode <mode>', 'AI interaction mode: active, passive, or off', 'passive')
   .option('--skip-intro', 'skip the introduction and get straight to planning')
   .action(initCommand);
 

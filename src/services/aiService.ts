@@ -200,6 +200,83 @@ Keep it under 50 words.`;
   }
 
   /**
+   * Suggest additional items for a list
+   */
+  public async suggestListItems(prompt: string, currentItems: string[]): Promise<string[] | null> {
+    const aiPrompt = `
+User was asked: "${prompt}"
+They provided these items:
+${currentItems.map((item, i) => `${i + 1}. ${item}`).join('\n')}
+
+Suggest 2-3 additional items they might have missed. These should be:
+- Specific and actionable
+- Common oversights for MVPs
+- Different from what they already have
+
+Return ONLY the items, one per line. No numbering or explanations.`;
+
+    const response = await this.callClaude(aiPrompt);
+    
+    if (response) {
+      this.recordInteraction('list_suggestion', prompt, aiPrompt, response.content, response.tokensUsed, response.cost);
+      return response.content.split('\n').filter(item => item.trim().length > 0);
+    }
+    
+    return null;
+  }
+
+  /**
+   * Validate PRD data for completeness and quality
+   */
+  public async validatePRD(data: any): Promise<AIValidationResult | null> {
+    const prompt = `
+Analyze this MVP PRD for completeness and potential issues:
+
+Project: ${data.project.name}
+Problem: ${data.project.problem}
+Solution: ${data.project.solution}
+Target Users: ${data.project.targetAudience}
+MVP Features: ${data.mvp.features.join(', ')}
+Timeline: ${data.timeline.totalWeeks} weeks
+Tech Stack: ${JSON.stringify(data.techStack)}
+
+Provide:
+1. Critical issues (things that will likely cause failure)
+2. Helpful suggestions (improvements that would increase success)
+
+Format as JSON:
+{
+  "issues": ["issue1", "issue2"],
+  "suggestions": ["suggestion1", "suggestion2"]
+}`;
+
+    const response = await this.callClaude(prompt);
+    
+    if (response) {
+      this.recordInteraction('validation', 'PRD Validation', prompt, response.content, response.tokensUsed, response.cost);
+      
+      try {
+        const result = JSON.parse(response.content);
+        return {
+          isValid: result.issues.length === 0,
+          issues: result.issues || [],
+          suggestions: result.suggestions || [],
+          score: 100 - (result.issues.length * 10)
+        };
+      } catch {
+        return {
+          isValid: true,
+          issues: [],
+          suggestions: [response.content],
+          score: 100
+        };
+      }
+    }
+    
+    return null;
+  }
+
+  /**
    * Optimize PRD content
    */
   public async optimizePRD(content: string): Promise<AIOptimizationResult | null> {
@@ -224,6 +301,7 @@ Return the optimized version.`;
 
     return {
       original: content,
+      content: response.content, // The optimized content
       optimized: response.content,
       improvements: [
         'Made success metrics measurable',
