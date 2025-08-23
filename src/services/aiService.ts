@@ -131,8 +131,16 @@ export class AIService {
     
     // Set system message based on language
     const systemMessage = system || (language === 'de' 
-      ? 'Du bist ein erfahrener Produktberater, der Solo-Entwicklern hilft, bessere MVPs zu erstellen. Antworte auf Deutsch. Sei präzise aber einsichtsvoll.'
-      : 'You are an expert product consultant helping solo developers create better MVPs. Be concise but insightful.');
+      ? `Du bist ein erfahrener Solo-Entwickler-Coach mit 10+ Jahren Erfahrung beim Launchen erfolgreicher MVPs. Du kennst die typischen Fallen: Analysis Paralysis (70% der Solo-MVPs scheitern daran), Feature Creep, Over-Engineering, und unrealistische Timelines. 
+
+Deine Expertise basiert auf Research erfolgreicher Solo-Entwickler wie Pieter Levels ($170k/Monat) und den Lean Startup-Prinzipien. Du enforcest strikt: max 3 Features, max 12 Wochen Timeline, max 2 Innovation Tokens, Validation vor Development.
+
+Antworte auf Deutsch. Sei direkt aber konstruktiv. Fokus auf Prevention der typischen Solo-Entwickler-Fallen.`
+      : `You are an experienced solo developer coach with 10+ years of experience launching successful MVPs. You know the typical traps: Analysis Paralysis (70% of solo MVPs fail from this), Feature Creep, Over-Engineering, and unrealistic timelines.
+
+Your expertise is based on research of successful solo developers like Pieter Levels ($170k/month) and Lean Startup principles. You strictly enforce: max 3 features, max 12 weeks timeline, max 2 innovation tokens, validation before development.
+
+Be direct but constructive. Focus on preventing typical solo developer pitfalls.`);
 
     try {
       const response = await this.client.messages.create({
@@ -187,32 +195,32 @@ export class AIService {
 Gestellte Frage: "${question}"
 Antwort des Nutzers: "${answer}"
 
-Als Produktberater, bewerte diese Antwort kritisch.
+Bewerte diese Antwort kritisch als Solo-Entwickler-Coach. Prüfe auf typische Fallen: Zu vage? Zu komplex? Feature Creep? Unrealistisch? Nicht validierbar?
 
 Gib ein JSON-Objekt zurück mit:
 {
-  "feedback": "Kurze Erklärung, was verbessert werden könnte (sei freundlich aber direkt, max. 100 Wörter)",
-  "suggestion": "Eine vollständige, verbesserte Version der Antwort, die die Probleme behebt" (nur wenn Verbesserung nötig)
+  "feedback": "Direktes Feedback: Was ist das Problem? Welche Solo-Entwickler-Falle droht? (max. 100 Wörter)",
+  "suggestion": "Konkrete, MVP-fokussierte Version der Antwort (max 3 Features, max 12 Wochen, validierbar)" (nur wenn Verbesserung nötig)
 }
 
-Wenn die Antwort bereits ausgezeichnet ist, gib zurück:
+Wenn die Antwort bereits MVP-ready ist, gib zurück:
 {
-  "feedback": "Gute Antwort! [kurze Erklärung warum]"
+  "feedback": "MVP-ready! [kurze Erklärung warum diese Antwort funktioniert]"
 }` : `
 Question asked: "${question}"
 User's answer: "${answer}"
 
-As a product consultant, critically evaluate this answer. 
+Evaluate this answer critically as a solo developer coach. Check for typical traps: Too vague? Too complex? Feature creep? Unrealistic? Not validatable?
 
 Return a JSON object with:
 {
-  "feedback": "Brief explanation of what could be improved (be kind but direct, max 100 words)",
-  "suggestion": "A complete, improved version of the answer that addresses the issues" (only if improvement needed)
+  "feedback": "Direct feedback: What's the problem? Which solo developer trap is looming? (max 100 words)",
+  "suggestion": "Concrete, MVP-focused version of the answer (max 3 features, max 12 weeks, validatable)" (only if improvement needed)
 }
 
-If the answer is already excellent, return:
+If the answer is already MVP-ready, return:
 {
-  "feedback": "Good answer! [brief explanation why]"
+  "feedback": "MVP-ready! [brief explanation why this answer works]"
 }`;
 
     const response = await this.callClaude(prompt, undefined, language);
@@ -241,15 +249,25 @@ If the answer is already excellent, return:
 Frage: "${question}"
 Antwort: "${answer}"
 
-Erstelle eine vollständige, verbesserte Version dieser Antwort, die dieselbe Frage beantwortet, aber mit besserer Spezifität, Messbarkeit und Klarheit für einen MVP-Plan.
+Erstelle eine MVP-optimierte Version dieser Antwort. Befolge strikt:
+- Max 3 Features (weniger ist besser)
+- Max 12 Wochen Timeline (kürzer ist besser)
+- Fokus auf Validation vor Development
+- Vermeide Analysis Paralysis und Feature Creep
+- Mache es messbar und testbar
 
-Gib die verbesserte Antwort direkt ohne Präfix oder Erklärung zurück. Mache sie konkret und umsetzbar.` : `
+Gib die verbesserte Antwort direkt zurück. Keine Erklärung, nur die konkrete, umsetzbare Antwort.` : `
 Question: "${question}"
 Answer: "${answer}"
 
-Provide a complete, improved version of this answer that addresses the same question but with better specificity, measurability, and clarity for an MVP plan.
+Create an MVP-optimized version of this answer. Strictly follow:
+- Max 3 features (less is better)
+- Max 12 weeks timeline (shorter is better)  
+- Focus on validation before development
+- Avoid analysis paralysis and feature creep
+- Make it measurable and testable
 
-Return the improved answer directly without any prefix or explanation. Make it concrete and actionable.`;
+Return the improved answer directly. No explanation, just the concrete, actionable answer.`;
 
     const response = await this.callClaude(prompt, undefined, language);
     
