@@ -1,0 +1,58 @@
+{
+  "name": "prd-zero",
+  "version": "1.0.0",
+  "description": "MVP planning tool for solo developers - from idea to PRD in 70 minutes",
+  "main": "dist/index.js",
+  "bin": {
+    "prd-zero": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "prepare": "npm run build",
+    "lint": "eslint src/**/*.ts",
+    "clean": "rm -rf dist",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": [
+    "cli",
+    "mvp",
+    "planning",
+    "prd",
+    "product",
+    "development",
+    "typescript"
+  ],
+  "author": "Thomas Bieth <tb@tomsolut.de>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tomsolut/prd-zero.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tomsolut/prd-zero/issues"
+  },
+  "homepage": "https://github.com/tomsolut/prd-zero#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.60.0",
+    "chalk": "^5.6.0",
+    "commander": "^14.0.0",
+    "handlebars": "^4.7.8",
+    "inquirer": "^12.9.3",
+    "ora": "^8.2.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.9",
+    "@types/node": "^24.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.40.0",
+    "@typescript-eslint/parser": "^8.40.0",
+    "eslint": "^9.34.0",
+    "tsx": "^4.20.4",
+    "typescript": "^5.9.2"
+  }
+}
