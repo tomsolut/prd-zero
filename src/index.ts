@@ -19,7 +19,7 @@ program
   .option('-o, --output <path>', 'output directory for generated files', './outputs')
   .option('-t, --time-limit <minutes>', 'session time limit in minutes', '70')
   .option('--ai', 'enable AI-powered suggestions (requires API key)')
-  .option('--ai-mode <mode>', 'AI interaction mode: active, passive, or off', 'passive')
+  .option('--ai-mode <mode>', 'AI interaction mode: active, passive, or off', 'active')
   .option('--skip-intro', 'skip the introduction and get straight to planning')
   .action(initCommand);
 
@@ -59,7 +59,8 @@ if (!process.argv.slice(2).length) {
   program.outputHelp();
   console.log('');
   console.log(chalk.cyan('Quick start:'));
-  console.log(chalk.gray('  $ prd-zero init'));
+  console.log(chalk.gray('  $ prd-zero init              # Start with AI assistance (active mode)'));
+  console.log(chalk.gray('  $ prd-zero init --ai-mode off # Start without AI'));
   console.log('');
   console.log(chalk.cyan('For more information:'));
   console.log(chalk.gray('  https://github.com/tomsolut/prd-zero'));

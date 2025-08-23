@@ -55,8 +55,8 @@ export async function initCommand(options: InitOptions): Promise<void> {
     Logger.info(`Time limit: ${timeLimit} minutes`);
     Logger.info(`Output directory: ${sessionDir}`);
     
-    // Initialize AI if requested
-    const aiMode = options.aiMode || (options.ai ? 'passive' : 'off');
+    // Initialize AI (default is 'active' now)
+    const aiMode = options.aiMode || 'active';
     const aiFlow = await createAIEnhancedFlow(sessionId, {
       aiMode,
       showCosts: process.env.AI_SHOW_COSTS !== 'false'
@@ -68,7 +68,12 @@ export async function initCommand(options: InitOptions): Promise<void> {
     let prdData: PRDData;
 
     if (sessionType === 'quick') {
-      prdData = await askQuickStartQuestions() as PRDData;
+      if (aiMode !== 'off') {
+        // Use AI-enhanced quick start questions
+        prdData = await askQuickStartQuestionsWithAI(sessionStartTime, aiFlow);
+      } else {
+        prdData = await askQuickStartQuestions() as PRDData;
+      }
     } else {
       if (aiMode !== 'off') {
         // Use AI-enhanced question flow
@@ -433,6 +438,149 @@ async function collectAllQuestionsWithAI(sessionStartTime: Date, aiFlow: any): P
     assumptions,
     openQuestions,
     nextSteps,
+    generatedAt: new Date(),
+    sessionDuration: Math.floor((Date.now() - sessionStartTime.getTime()) / 60000)
+  };
+  
+  return prdData;
+}
+
+async function askQuickStartQuestionsWithAI(sessionStartTime: Date, aiFlow: any): Promise<PRDData> {
+  Logger.title('QUICK START MODE WITH AI');
+  
+  // Project Questions with AI
+  Logger.section('Project Information');
+  
+  const projectName = await aiFlow.askWithAI(
+    'What is the name of your project?',
+    (v: string) => v.length >= 2 || 'Project name must be at least 2 characters'
+  );
+  
+  const description = await aiFlow.askWithAI(
+    'Describe your project in 2-3 sentences:',
+    (v: string) => v.length >= 10 || 'Please provide a more detailed description (min 10 chars)'
+  );
+  
+  const targetAudience = await aiFlow.askWithAI(
+    'Who is your target audience?',
+    (v: string) => v.length >= 10 || 'Please be more specific about your target audience'
+  );
+  
+  const problem = await aiFlow.askWithAI(
+    'What problem does your project solve?',
+    (v: string) => v.length >= 20 || 'Please provide a more detailed problem statement (min 20 chars)'
+  );
+  
+  const uniqueValue = await aiFlow.askWithAI(
+    'What makes your solution unique?',
+    (v: string) => v.length >= 10 || 'Please describe what makes your solution unique'
+  );
+  
+  // MVP Questions with AI
+  Logger.section('MVP Scope Definition');
+  
+  const numFeaturesStr = await aiFlow.askWithAI(
+    'How many core features will your MVP have? (3-5 recommended for true MVP):',
+    (v: string) => {
+      const num = parseInt(v);
+      return (!isNaN(num) && num >= 1 && num <= 10) || 'Please enter a number between 1 and 10';
+    },
+    '3'
+  );
+  const numFeatures = parseInt(numFeaturesStr);
+  
+  const coreFeatures = await aiFlow.askListWithAI(
+    `List your ${numFeatures} core MVP features:`,
+    {
+      minItems: numFeatures,
+      maxItems: numFeatures,
+      itemMinLength: 5
+    }
+  );
+  
+  const successMetrics = await aiFlow.askListWithAI(
+    'List 2-3 success metrics (how will you measure success?):',
+    {
+      minItems: 2,
+      maxItems: 3,
+      itemMinLength: 5
+    }
+  );
+  
+  // Timeline with AI
+  Logger.section('Timeline');
+  
+  const timelineWeeks = await aiFlow.askWithAI(
+    'How many weeks to build the MVP? (be realistic):',
+    (v: string) => {
+      const weeks = parseInt(v);
+      return (!isNaN(weeks) && weeks >= 2 && weeks <= 52) || 'Please enter a number between 2 and 52 weeks';
+    },
+    '8'
+  );
+  
+  // Risks with AI
+  Logger.section('Risk Assessment');
+  
+  const risks = await aiFlow.askListWithAI(
+    'List 2-3 main risks for this project:',
+    {
+      minItems: 2,
+      maxItems: 3,
+      itemMinLength: 10
+    }
+  );
+  
+  // Build PRDData
+  const prdData: PRDData = {
+    project: {
+      name: projectName,
+      description,
+      targetAudience,
+      problemStatement: problem,
+      uniqueValue
+    },
+    mvp: {
+      problemStatement: problem,
+      solutionApproach: description,
+      coreFeatures,
+      successMetrics,
+      outOfScope: [],
+      nonGoals: [],
+      constraints: [`Time: ${timelineWeeks} weeks`, 'Budget: Solo developer']
+    },
+    timeline: {
+      totalWeeks: parseInt(timelineWeeks),
+      phases: [
+        {
+          name: 'Development',
+          duration: parseInt(timelineWeeks),
+          deliverables: coreFeatures
+        }
+      ],
+      milestones: [
+        {
+          name: 'MVP Complete',
+          date: new Date(Date.now() + parseInt(timelineWeeks) * 7 * 24 * 60 * 60 * 1000).toISOString(),
+          criteria: ['All core features complete']
+        }
+      ]
+    },
+    techStack: {
+      frontend: ['To be decided'],
+      backend: ['To be decided'],
+      database: ['To be decided'],
+      hosting: ['To be decided']
+    },
+    risks: risks.map((r: string) => ({
+      description: r,
+      impact: 'medium' as const,
+      likelihood: 'medium' as const,
+      mitigation: 'To be defined'
+    })),
+    assumptions: ['Technical feasibility confirmed', 'Target audience identified'],
+    openQuestions: ['Technical implementation details', 'Marketing strategy'],
+    nextSteps: ['Set up development environment', 'Create project structure', 'Start with first feature'],
     generatedAt: new Date(),
     sessionDuration: Math.floor((Date.now() - sessionStartTime.getTime()) / 60000)
   };
