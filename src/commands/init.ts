@@ -230,12 +230,213 @@ async function askSessionType(): Promise<string> {
   return answer.type;
 }
 
-async function collectAllQuestionsWithAI(sessionStartTime: Date, _aiFlow: any): Promise<PRDData> {
-  // This is a simplified version - in production you would integrate AI into each question
-  const prdData = await collectAllQuestions(sessionStartTime);
+async function collectAllQuestionsWithAI(sessionStartTime: Date, aiFlow: any): Promise<PRDData> {
+  // Import needed functions
+  const { enforceTimeBox } = await import('../questions/coreQuestions.js');
   
-  // The AI flow has already been tracking interactions through the session
-  // Here we just return the data as the AI enhancements were applied during collection
+  // Start with core questions using AI enhancement
+  Logger.section('Core Project Definition');
+  
+  // Use AI-enhanced questions for core questions
+  const projectName = await aiFlow.askWithAI(
+    'What is the name of your project?',
+    (v: string) => v.length >= 2 || 'Project name must be at least 2 characters'
+  );
+  
+  const problem = await aiFlow.askWithAI(
+    'What problem does your project solve? (Be specific)',
+    (v: string) => v.length >= 20 || 'Please provide a more detailed problem statement (min 20 chars)'
+  );
+  
+  const solution = await aiFlow.askWithAI(
+    'How does your project solve this problem?',
+    (v: string) => v.length >= 20 || 'Please provide a more detailed solution (min 20 chars)'
+  );
+  
+  const targetAudience = await aiFlow.askWithAI(
+    'Who is your target audience? (Be specific about demographics)',
+    (v: string) => v.length >= 10 || 'Please be more specific about your target audience'
+  );
+  
+  const uniqueValue = await aiFlow.askWithAI(
+    'What makes your solution unique compared to existing alternatives?',
+    (v: string) => v.length >= 20 || 'Please provide more detail about your unique value'
+  );
+  
+  // Check time box
+  if (enforceTimeBox(sessionStartTime, 15)) {
+    Logger.warning('Core questions took too long. Switching to rapid mode.');
+  }
+  
+  // MVP Questions with AI
+  Logger.section('MVP Scope');
+  
+  const coreFeatures = await aiFlow.askListWithAI(
+    'List 3-5 core features for your MVP (most essential only):',
+    {
+      minItems: 3,
+      maxItems: 5,
+      itemMinLength: 5
+    }
+  );
+  
+  const successMetrics = await aiFlow.askListWithAI(
+    'List 2-4 success metrics (how will you measure success?):',
+    {
+      minItems: 2,
+      maxItems: 4,
+      itemMinLength: 5
+    }
+  );
+  
+  const outOfScope = await aiFlow.askListWithAI(
+    'List features that are OUT of scope for MVP (save for later):',
+    {
+      minItems: 2,
+      maxItems: 10,
+      itemMinLength: 5
+    }
+  );
+  
+  // Timeline Questions with AI
+  Logger.section('Timeline Planning');
+  
+  const timelineWeeks = await aiFlow.askWithAI(
+    'How many weeks do you estimate for MVP development? (be realistic)',
+    (v: string) => {
+      const weeks = parseInt(v);
+      return (!isNaN(weeks) && weeks >= 2 && weeks <= 52) || 'Please enter a number between 2 and 52 weeks';
+    }
+  );
+  
+  // Technical Questions with AI
+  Logger.section('Technical Decisions');
+  
+  const techStackFrontend = await aiFlow.askWithAI(
+    'What frontend technology will you use? (e.g., React, Vue, vanilla JS)',
+    (v: string) => v.length >= 2 || 'Please specify a frontend technology'
+  );
+  
+  const techStackBackend = await aiFlow.askWithAI(
+    'What backend technology will you use? (e.g., Node.js, Python, Rails)',
+    (v: string) => v.length >= 2 || 'Please specify a backend technology'
+  );
+  
+  const techStackDatabase = await aiFlow.askWithAI(
+    'What database will you use? (e.g., PostgreSQL, MongoDB, Firebase)',
+    (v: string) => v.length >= 2 || 'Please specify a database'
+  );
+  
+  // Risk Assessment with AI
+  const risks = await aiFlow.askListWithAI(
+    'List 2-5 main risks or challenges for this project:',
+    {
+      minItems: 2,
+      maxItems: 5,
+      itemMinLength: 10
+    }
+  );
+  
+  // Final Details with AI
+  Logger.section('Final Details');
+  
+  const assumptions = await aiFlow.askListWithAI(
+    'List key assumptions (what you assume to be true):',
+    {
+      minItems: 1,
+      maxItems: 10,
+      itemMinLength: 5
+    }
+  );
+  
+  const openQuestions = await aiFlow.askListWithAI(
+    'List open questions to research:',
+    {
+      minItems: 1,
+      maxItems: 10,
+      itemMinLength: 5
+    }
+  );
+  
+  const nextSteps = await aiFlow.askListWithAI(
+    'List immediate next steps after this planning session:',
+    {
+      minItems: 3,
+      maxItems: 10,
+      itemMinLength: 5
+    }
+  );
+  
+  // Construct PRDData object
+  const prdData: PRDData = {
+    project: {
+      name: projectName,
+      description: solution,
+      targetAudience,
+      problemStatement: problem,
+      uniqueValue
+    },
+    mvp: {
+      problemStatement: problem,
+      solutionApproach: solution,
+      coreFeatures,
+      successMetrics,
+      outOfScope,
+      nonGoals: outOfScope.slice(0, 3),
+      constraints: [`Time: ${timelineWeeks} weeks`, 'Budget: Solo developer', 'Resources: Limited']
+    },
+    timeline: {
+      totalWeeks: parseInt(timelineWeeks),
+      phases: [
+        {
+          name: 'Setup & Planning',
+          duration: 1,
+          deliverables: ['Development environment', 'Project structure', 'Initial designs']
+        },
+        {
+          name: 'Core Development',
+          duration: Math.max(1, parseInt(timelineWeeks) - 2),
+          deliverables: coreFeatures
+        },
+        {
+          name: 'Testing & Launch',
+          duration: 1,
+          deliverables: ['Testing', 'Bug fixes', 'Deployment']
+        }
+      ],
+      milestones: [
+        {
+          name: 'Development Start',
+          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          criteria: ['Environment ready', 'Project structure defined']
+        },
+        {
+          name: 'MVP Complete',
+          date: new Date(Date.now() + parseInt(timelineWeeks) * 7 * 24 * 60 * 60 * 1000).toISOString(),
+          criteria: ['All core features complete', 'Testing passed', 'Ready for deployment']
+        }
+      ]
+    },
+    techStack: {
+      frontend: [techStackFrontend],
+      backend: [techStackBackend],
+      database: [techStackDatabase],
+      hosting: ['To be decided'],
+      tools: []
+    },
+    risks: risks.map((r: string) => ({
+      description: r,
+      impact: 'medium' as const,
+      likelihood: 'medium' as const,
+      mitigation: 'To be defined'
+    })),
+    assumptions,
+    openQuestions,
+    nextSteps,
+    generatedAt: new Date(),
+    sessionDuration: Math.floor((Date.now() - sessionStartTime.getTime()) / 60000)
+  };
+  
   return prdData;
 }
 
