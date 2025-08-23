@@ -4,6 +4,7 @@ import { askMVPQuestions } from './mvp.js';
 import { askTimelineQuestions } from './timeline.js';
 import { askTechnicalQuestions } from './technical.js';
 import { askCoreQuestions, coreAnswersToProjectData, enforceTimeBox } from './coreQuestions.js';
+import { askListInput } from '../utils/flexibleInput.js';
 import inquirer from 'inquirer';
 import { Logger } from '../utils/logger.js';
 
@@ -25,33 +26,36 @@ export async function collectAllQuestions(sessionStartTime: Date): Promise<PRDDa
 
   Logger.section('Final Details');
 
-  const finalAnswers = await inquirer.prompt([
+  // Use flexible list input for final details
+  const assumptions = await askListInput(
+    'List key assumptions (what you assume to be true):',
     {
-      type: 'editor',
-      name: 'assumptions',
-      message: 'List key assumptions (one per line, press Enter to open editor):',
-      default: '# List your assumptions here\n# One per line\n',
-    },
-    {
-      type: 'editor',
-      name: 'openQuestions',
-      message: 'List open questions to research (one per line, press Enter to open editor):',
-      default: '# List open questions here\n# One per line\n',
-    },
-    {
-      type: 'editor',
-      name: 'nextSteps',
-      message: 'List immediate next steps (one per line, press Enter to open editor):',
-      default: '# List next steps here\n# One per line\n',
-    },
-  ]);
+      minItems: 1,
+      maxItems: 10,
+      itemMinLength: 5,
+      defaultItems: ['Users have internet access', 'Target users use smartphones', 'Users are willing to pay for quality'],
+    }
+  );
 
-  const parseLines = (text: string): string[] => {
-    return text
-      .split('\n')
-      .filter(line => !line.trim().startsWith('#') && line.trim().length > 0)
-      .map(line => line.trim());
-  };
+  const openQuestions = await askListInput(
+    'List open questions to research:',
+    {
+      minItems: 1,
+      maxItems: 10,
+      itemMinLength: 5,
+      defaultItems: ['What is the exact market size?', 'Which payment provider to use?', 'How to handle user support?'],
+    }
+  );
+
+  const nextSteps = await askListInput(
+    'List immediate next steps:',
+    {
+      minItems: 3,
+      maxItems: 10,
+      itemMinLength: 5,
+      defaultItems: ['Set up development environment', 'Create technical design', 'Start with authentication'],
+    }
+  );
 
   const sessionDuration = (Date.now() - sessionStartTime.getTime()) / 60000;
 
@@ -61,9 +65,9 @@ export async function collectAllQuestions(sessionStartTime: Date): Promise<PRDDa
     timeline,
     techStack,
     risks,
-    assumptions: parseLines(finalAnswers.assumptions),
-    openQuestions: parseLines(finalAnswers.openQuestions),
-    nextSteps: parseLines(finalAnswers.nextSteps),
+    assumptions,
+    openQuestions,
+    nextSteps,
     generatedAt: new Date(),
     sessionDuration: Math.round(sessionDuration),
   };

@@ -3,6 +3,7 @@ import { MVPScope } from '../types/index.js';
 import { Logger } from '../utils/logger.js';
 import { Validator } from '../validators/index.js';
 import { validateScope } from './coreQuestions.js';
+import { askListInput } from '../utils/flexibleInput.js';
 
 export async function askMVPQuestions(prefilled?: Partial<MVPScope>): Promise<MVPScope> {
   Logger.section('MVP Scope Definition');
@@ -63,21 +64,20 @@ export async function askMVPQuestions(prefilled?: Partial<MVPScope>): Promise<MV
 
   let nonGoals: string[] = [];
   if (scopeAnswers.hasNonGoals) {
-    const nonGoalInput = await inquirer.prompt([
+    nonGoals = await askListInput(
+      'List non-goals (things NOT in the MVP, max 10 items):',
       {
-        type: 'editor',
-        name: 'nonGoals',
-        message: 'List non-goals (one per line, max 10 items, press Enter to open editor):',
-        default: '# Things NOT in the MVP\n# One per line\n# Be specific about what you\'re excluding\n',
-      },
-    ]);
-    // Use scope protection to limit non-goals
-    const parsedNonGoals = nonGoalInput.nonGoals
-      .split('\n')
-      .map((s: string) => Validator.sanitizeString(s))
-      .filter((s: string) => s.length > 0 && !s.startsWith('#'));
+        minItems: 1,
+        maxItems: 10,
+        itemMinLength: 5,
+        defaultItems: ['Advanced analytics', 'Social features', 'Mobile app'],
+      }
+    );
     
-    nonGoals = validateScope(parsedNonGoals.join('\n'), 10, 'non-goals');
+    // Use scope protection if needed
+    if (nonGoals.length > 10) {
+      nonGoals = validateScope(nonGoals.join('\n'), 10, 'non-goals');
+    }
   }
 
   const metricsAnswers = await inquirer.prompt([
@@ -131,17 +131,15 @@ export async function askMVPQuestions(prefilled?: Partial<MVPScope>): Promise<MV
 
   let constraints: string[] = [];
   if (constraintAnswers.hasConstraints) {
-    const constraintInput = await inquirer.prompt([
+    constraints = await askListInput(
+      'List constraints (budget, time, technical):',
       {
-        type: 'editor',
-        name: 'constraints',
-        message: 'List constraints (one per line, press Enter to open editor):',
-      },
-    ]);
-    constraints = constraintInput.constraints
-      .split('\n')
-      .map((s: string) => Validator.sanitizeString(s))
-      .filter((s: string) => s.length > 0);
+        minItems: 1,
+        maxItems: 10,
+        itemMinLength: 5,
+        defaultItems: ['Limited to $500 budget', 'Must launch in 8 weeks', 'Use existing tech stack'],
+      }
+    );
   }
 
   Logger.success('MVP scope defined');
