@@ -11,6 +11,7 @@ import {
   OptimizedAIResponse,
   Warning
 } from '../types/ai.js';
+import { PRDData } from '../types/index.js';
 import { Logger } from '../utils/logger.js';
 import chalk from 'chalk';
 import { QuestionTypeDetector, QuestionType } from './questionTypeDetector.js';
@@ -399,15 +400,15 @@ Return ONLY the items, one per line. No numbering or explanations.`;
   /**
    * Validate PRD data for completeness and quality
    */
-  public async validatePRD(data: any): Promise<AIValidationResult | null> {
+  public async validatePRD(data: PRDData): Promise<AIValidationResult | null> {
     const prompt = `
 Analyze this MVP PRD for completeness and potential issues:
 
 Project: ${data.project.name}
-Problem: ${data.project.problem}
-Solution: ${data.project.solution}
+Problem: ${data.project.problemStatement || data.mvp.problemStatement}
+Solution: ${data.project.uniqueValue || data.mvp.solutionApproach}
 Target Users: ${data.project.targetAudience}
-MVP Features: ${data.mvp.features.join(', ')}
+MVP Features: ${data.mvp.coreFeatures.join(', ')}
 Timeline: ${data.timeline.totalWeeks} weeks
 Tech Stack: ${JSON.stringify(data.techStack)}
 

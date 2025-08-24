@@ -3,7 +3,8 @@ import { AIService } from '../services/aiService.js';
 import type { SessionAnalytics as ISessionAnalytics } from '../services/sessionAnalytics.js';
 import { OptimizedAIResponse, Warning } from '../types/ai.js';
 import { QuestionTypeDetector } from '../services/questionTypeDetector.js';
-import { ContextMemoryService, QuestionCategory } from '../services/contextMemory.js';
+import { ContextMemoryService } from '../services/contextMemory.js';
+import { QuestionCategory } from '../types/contextMemory.js';
 
 // Simple SessionAnalytics implementation for AI tracking
 class SessionAnalytics implements Partial<ISessionAnalytics> {

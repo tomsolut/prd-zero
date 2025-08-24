@@ -3,6 +3,7 @@
  */
 
 import { QuestionType } from './questionTypeDetector.js';
+import { Warning } from '../types/ai.js';
 
 export type Language = 'de' | 'en';
 
@@ -679,7 +680,7 @@ Return the improved answer directly without prefix. Make it concrete, actionable
     question: string,
     answer: string,
     questionType: QuestionType,
-    warnings: any[],
+    warnings: Warning[],
     contextHistory?: string
   ): string {
     const contextRequirements = this.getContextSpecificRequirements(questionType, language);

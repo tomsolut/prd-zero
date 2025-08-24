@@ -1,55 +1,36 @@
 import { QuestionType } from './questionTypeDetector.js';
+import {
+  QuestionCategory,
+  ContextEntry,
+  ProjectContext,
+  ConsistencyCheck,
+  ContextMemoryExport
+} from '../types/contextMemory.js';
 
-/**
- * Category types for organizing questions
- */
-export type QuestionCategory = 'project' | 'mvp' | 'tech' | 'timeline' | 'launch' | 'other';
-
-/**
- * Entry for storing question-answer pairs with metadata
- */
-export interface ContextEntry {
-  questionType: QuestionType;
-  question: string;
-  answer: string;
-  timestamp: Date;
-  category: QuestionCategory;
-  improved?: boolean; // Was the answer improved by AI?
-}
-
-/**
- * Structured project context built from answers
- */
-export interface ProjectContext {
-  name?: string;
-  description?: string;
-  targetAudience?: string;
-  problem?: string;
-  solution?: string;
-  uniqueValue?: string;
-  features?: string[];
-  techStack?: string[];
-  timeline?: string;
-  risks?: string[];
-  successMetrics?: string[];
-}
-
-/**
- * Inconsistency detection result
- */
-export interface ConsistencyCheck {
-  isConsistent: boolean;
-  issues: string[];
-  affectedQuestions: string[];
-}
+export { QuestionCategory, ContextEntry, ProjectContext, ConsistencyCheck };
 
 /**
  * Service for managing context memory across the session
  */
+/**
+ * Constants for Context Memory Service
+ */
+const CONTEXT_CONSTANTS = {
+  MAX_CONTEXT_LENGTH: 2000,
+  CRITICAL_FIELD_PREFIXES: ['Projektname:', 'Zielgruppe:', 'Problem:', 'Features:'],
+  CONTEXT_HEADERS: {
+    START: '=== BISHERIGER PROJEKT-KONTEXT ===',
+    END: '=== ENDE KONTEXT ===',
+    IMPORTANT: 'WICHTIG: Neue Antworten müssen zu obigen Definitionen passen und darauf aufbauen.'
+  }
+} as const;
+
 export class ContextMemoryService {
   private history: ContextEntry[] = [];
   private projectContext: ProjectContext = {};
-  private readonly maxContextLength = 2000; // Max characters for context to avoid token limits
+  private readonly maxContextLength = CONTEXT_CONSTANTS.MAX_CONTEXT_LENGTH;
+  private cachedContext: string | null = null;
+  private contextDirty = false;
 
   /**
    * Add a new entry to the context history
@@ -57,6 +38,66 @@ export class ContextMemoryService {
   public addEntry(entry: ContextEntry): void {
     this.history.push(entry);
     this.updateProjectContext(entry);
+    this.contextDirty = true; // Invalidate cache
+  }
+
+  /**
+   * Context update strategies based on question patterns
+   */
+  private readonly contextUpdateStrategies = {
+    name: (answer: string) => { this.projectContext.name = answer; },
+    description: (answer: string) => { this.projectContext.description = answer; },
+    targetAudience: (answer: string) => { this.projectContext.targetAudience = answer; },
+    problem: (answer: string) => { this.projectContext.problem = answer; },
+    uniqueValue: (answer: string) => { this.projectContext.uniqueValue = answer; },
+    solution: (answer: string) => { this.projectContext.solution = answer; },
+    features: (answer: string) => { this.projectContext.features = this.parseListAnswer(answer, this.projectContext.features); },
+    techStack: (answer: string) => { this.projectContext.techStack = this.parseListAnswer(answer, this.projectContext.techStack); },
+    timeline: (answer: string) => { this.projectContext.timeline = answer; },
+    risks: (answer: string) => { this.projectContext.risks = this.parseListAnswer(answer, this.projectContext.risks); },
+    successMetrics: (answer: string) => { this.projectContext.successMetrics = this.parseListAnswer(answer, this.projectContext.successMetrics); }
+  };
+
+  /**
+   * Parse list-type answers
+   */
+  private parseListAnswer(answer: string, existing?: string[]): string[] {
+    if (answer.includes('\n') || answer.includes(',')) {
+      return answer.split(/[\n,]/).map(item => item.trim()).filter(item => item);
+    }
+    return existing || [answer];
+  }
+
+  /**
+   * Detect context type from question
+   */
+  private detectContextType(question: string): keyof typeof this.contextUpdateStrategies | null {
+    const q = question.toLowerCase();
+    
+    const patterns: Record<keyof typeof this.contextUpdateStrategies, string[]> = {
+      name: ['name', 'projekt'],
+      description: ['beschreiben', 'describe'],
+      targetAudience: ['zielgruppe', 'target', 'audience'],
+      problem: ['problem'],
+      uniqueValue: ['einzigartig', 'unique'],
+      solution: ['lösung', 'solution'],
+      features: ['feature', 'funktion'],
+      techStack: ['tech', 'stack', 'technologie'],
+      timeline: ['zeit', 'timeline', 'wochen', 'weeks'],
+      risks: ['risk', 'risiko'],
+      successMetrics: ['metrik', 'metric', 'erfolg', 'success']
+    };
+
+    for (const [type, keywords] of Object.entries(patterns)) {
+      if (keywords.some(keyword => q.includes(keyword))) {
+        // Special handling for problem vs solution
+        if (type === 'solution' && q.includes('problem')) continue;
+        if (type === 'uniqueValue' && !q.includes('einzigartig') && !q.includes('unique')) continue;
+        return type as keyof typeof this.contextUpdateStrategies;
+      }
+    }
+    
+    return null;
   }
 
   /**
@@ -64,77 +105,10 @@ export class ContextMemoryService {
    */
   private updateProjectContext(entry: ContextEntry): void {
     const answer = entry.answer.trim();
-    const question = entry.question.toLowerCase();
-
-    // Project name
-    if (question.includes('name') && question.includes('projekt')) {
-      this.projectContext.name = answer;
-    }
+    const contextType = this.detectContextType(entry.question);
     
-    // Description
-    if (question.includes('beschreiben') || question.includes('describe')) {
-      this.projectContext.description = answer;
-    }
-    
-    // Target audience
-    if (question.includes('zielgruppe') || question.includes('target') || question.includes('audience')) {
-      this.projectContext.targetAudience = answer;
-    }
-    
-    // Problem statement
-    if (question.includes('problem') && !question.includes('lösung')) {
-      this.projectContext.problem = answer;
-    }
-    
-    // Solution
-    if (question.includes('lösung') || question.includes('solution') || question.includes('einzigartig')) {
-      if (question.includes('einzigartig') || question.includes('unique')) {
-        this.projectContext.uniqueValue = answer;
-      } else {
-        this.projectContext.solution = answer;
-      }
-    }
-    
-    // Features (handle list answers)
-    if (question.includes('feature') || question.includes('funktion')) {
-      // Check if answer looks like a list
-      if (answer.includes('\n') || answer.includes(',')) {
-        this.projectContext.features = answer.split(/[\n,]/).map(f => f.trim()).filter(f => f);
-      } else if (!this.projectContext.features) {
-        this.projectContext.features = [answer];
-      }
-    }
-    
-    // Tech stack
-    if (question.includes('tech') || question.includes('stack') || question.includes('technologie')) {
-      if (answer.includes('\n') || answer.includes(',')) {
-        this.projectContext.techStack = answer.split(/[\n,]/).map(t => t.trim()).filter(t => t);
-      } else if (!this.projectContext.techStack) {
-        this.projectContext.techStack = [answer];
-      }
-    }
-    
-    // Timeline
-    if (question.includes('zeit') || question.includes('timeline') || question.includes('wochen') || question.includes('weeks')) {
-      this.projectContext.timeline = answer;
-    }
-    
-    // Risks
-    if (question.includes('risk') || question.includes('risiko')) {
-      if (answer.includes('\n') || answer.includes(',')) {
-        this.projectContext.risks = answer.split(/[\n,]/).map(r => r.trim()).filter(r => r);
-      } else if (!this.projectContext.risks) {
-        this.projectContext.risks = [answer];
-      }
-    }
-    
-    // Success metrics
-    if (question.includes('metrik') || question.includes('metric') || question.includes('erfolg') || question.includes('success')) {
-      if (answer.includes('\n') || answer.includes(',')) {
-        this.projectContext.successMetrics = answer.split(/[\n,]/).map(m => m.trim()).filter(m => m);
-      } else if (!this.projectContext.successMetrics) {
-        this.projectContext.successMetrics = [answer];
-      }
+    if (contextType && this.contextUpdateStrategies[contextType]) {
+      this.contextUpdateStrategies[contextType](answer);
     }
   }
 
@@ -142,10 +116,15 @@ export class ContextMemoryService {
    * Get formatted context for AI prompts
    */
   public getContextForPrompt(): string {
+    // Return cached context if available and not dirty
+    if (this.cachedContext && !this.contextDirty) {
+      return this.cachedContext;
+    }
+    
     // Build structured context
     const contextParts: string[] = [];
     
-    contextParts.push('=== BISHERIGER PROJEKT-KONTEXT ===');
+    contextParts.push(CONTEXT_CONSTANTS.CONTEXT_HEADERS.START);
     
     if (this.projectContext.name) {
       contextParts.push(`Projektname: ${this.projectContext.name}`);
@@ -187,17 +166,20 @@ export class ContextMemoryService {
       contextParts.push(`Erfolgsmetriken: ${this.projectContext.successMetrics.join(', ')}`);
     }
     
-    contextParts.push('=== ENDE KONTEXT ===\n');
-    contextParts.push('WICHTIG: Neue Antworten müssen zu obigen Definitionen passen und darauf aufbauen.');
+    contextParts.push(CONTEXT_CONSTANTS.CONTEXT_HEADERS.END + '\n');
+    contextParts.push(CONTEXT_CONSTANTS.CONTEXT_HEADERS.IMPORTANT);
     
     // Trim to max length to avoid token limits
     const fullContext = contextParts.join('\n');
-    if (fullContext.length > this.maxContextLength) {
-      // Prioritize most recent and most important context
-      return this.trimContext(fullContext);
-    }
+    const finalContext = fullContext.length > this.maxContextLength 
+      ? this.trimContext(fullContext)
+      : fullContext;
     
-    return fullContext;
+    // Cache the result
+    this.cachedContext = finalContext;
+    this.contextDirty = false;
+    
+    return finalContext;
   }
 
   /**
@@ -205,7 +187,7 @@ export class ContextMemoryService {
    */
   private trimContext(fullContext: string): string {
     // Keep critical fields and trim others
-    const criticalFields = ['Projektname:', 'Zielgruppe:', 'Problem:', 'Features:'];
+    const criticalFields = CONTEXT_CONSTANTS.CRITICAL_FIELD_PREFIXES;
     const lines = fullContext.split('\n');
     const critical: string[] = [];
     const other: string[] = [];
@@ -327,23 +309,18 @@ export class ContextMemoryService {
   /**
    * Export context for saving
    */
-  public export(): {
-    history: ContextEntry[];
-    projectContext: ProjectContext;
-  } {
+  public export(): ContextMemoryExport {
     return {
       history: this.history,
-      projectContext: this.projectContext
+      projectContext: this.projectContext,
+      exportedAt: new Date()
     };
   }
 
   /**
    * Import saved context
    */
-  public import(data: {
-    history: ContextEntry[];
-    projectContext: ProjectContext;
-  }): void {
+  public import(data: ContextMemoryExport): void {
     this.history = data.history || [];
     this.projectContext = data.projectContext || {};
   }
