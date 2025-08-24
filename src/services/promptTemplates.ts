@@ -653,9 +653,19 @@ Return the improved answer directly without prefix. Make it concrete, actionable
     questionType: QuestionType,
     language: Language,
     question: string,
-    answer: string
+    answer: string,
+    contextHistory?: string
   ): string {
-    const template = this.CHALLENGE_PROMPTS[questionType][language];
+    let template = this.CHALLENGE_PROMPTS[questionType][language];
+    
+    // Add context if provided
+    if (contextHistory) {
+      const contextPrefix = language === 'de' 
+        ? `${contextHistory}\n\n` 
+        : `${contextHistory}\n\n`;
+      template = contextPrefix + template;
+    }
+    
     return template
       .replace('{question}', question)
       .replace('{answer}', answer);
@@ -669,11 +679,22 @@ Return the improved answer directly without prefix. Make it concrete, actionable
     question: string,
     answer: string,
     questionType: QuestionType,
-    warnings: any[]
+    warnings: any[],
+    contextHistory?: string
   ): string {
     const contextRequirements = this.getContextSpecificRequirements(questionType, language);
     
-    return this.IMPROVEMENT_PROMPTS[language]
+    let prompt = this.IMPROVEMENT_PROMPTS[language];
+    
+    // Add context history if provided
+    if (contextHistory) {
+      const contextSection = language === 'de'
+        ? `${contextHistory}\n\n`
+        : `${contextHistory}\n\n`;
+      prompt = contextSection + prompt;
+    }
+    
+    return prompt
       .replace('{question}', question)
       .replace('{answer}', answer)
       .replace('{questionType}', questionType)

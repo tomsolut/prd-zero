@@ -2,7 +2,8 @@ import { PRDData } from '../types/index.js';
 import { AIService } from '../services/aiService.js';
 import type { SessionAnalytics as ISessionAnalytics } from '../services/sessionAnalytics.js';
 import { OptimizedAIResponse, Warning } from '../types/ai.js';
-// import { QuestionTypeDetector } from '../services/questionTypeDetector.js'; // Will be used in future phases
+import { QuestionTypeDetector } from '../services/questionTypeDetector.js';
+import { ContextMemoryService, QuestionCategory } from '../services/contextMemory.js';
 
 // Simple SessionAnalytics implementation for AI tracking
 class SessionAnalytics implements Partial<ISessionAnalytics> {
@@ -22,6 +23,7 @@ import chalk from 'chalk';
 export class AIEnhancedQuestions {
   private aiService: AIService;
   private analytics: SessionAnalytics;
+  private contextMemory: ContextMemoryService;
   private aiMode: 'active' | 'passive' | 'off';
   private showCosts: boolean;
 
@@ -32,9 +34,35 @@ export class AIEnhancedQuestions {
   ) {
     this.aiService = new AIService();
     this.analytics = new SessionAnalytics();
+    this.contextMemory = new ContextMemoryService();
     this.analytics.sessionId = sessionId;
     this.aiMode = aiMode;
     this.showCosts = showCosts;
+  }
+
+  /**
+   * Detect question category based on keywords
+   */
+  private detectCategory(question: string): QuestionCategory {
+    const q = question.toLowerCase();
+    
+    if (q.includes('name') || q.includes('beschreib') || q.includes('zielgruppe') || q.includes('target')) {
+      return 'project';
+    }
+    if (q.includes('feature') || q.includes('funktion') || q.includes('mvp') || q.includes('scope')) {
+      return 'mvp';
+    }
+    if (q.includes('tech') || q.includes('stack') || q.includes('framework')) {
+      return 'tech';
+    }
+    if (q.includes('zeit') || q.includes('timeline') || q.includes('wochen') || q.includes('weeks')) {
+      return 'timeline';
+    }
+    if (q.includes('launch') || q.includes('release') || q.includes('go-to-market')) {
+      return 'launch';
+    }
+    
+    return 'other';
   }
 
   /**
@@ -201,18 +229,35 @@ export class AIEnhancedQuestions {
     };
     let answer = await askFlexibleInput(question, inputOptions);
     
+    // Store answer in context memory immediately
+    const questionType = QuestionTypeDetector.detectType(question);
+    const category = this.detectCategory(question);
+    
+    this.contextMemory.addEntry({
+      questionType,
+      question,
+      answer,
+      timestamp: new Date(),
+      category,
+      improved: false
+    });
+    
     if (this.aiMode === 'off') {
       this.analytics.questionsAnswered++;
       this.analytics.totalDuration += Date.now() - startTime;
       return answer;
     }
-
-    // Detect question type (for future use)
-    // const questionType = QuestionTypeDetector.detectType(question);
     
-    // AI Challenge in active mode with optimized prompts
+    // Get context for AI
+    const contextHistory = this.contextMemory.getContextForPrompt();
+    
+    // AI Challenge in active mode with optimized prompts and context
     if (this.aiMode === 'active') {
-      const optimizedResponse = await this.aiService.challengeAnswerOptimized(question, answer);
+      const optimizedResponse = await this.aiService.challengeAnswerOptimized(
+        question, 
+        answer,
+        contextHistory
+      );
       
       if (optimizedResponse) {
         this.displayOptimizedFeedback(optimizedResponse);
@@ -240,6 +285,15 @@ export class AIEnhancedQuestions {
 
             if (action === 'use') {
               answer = optimizedResponse.suggestion;
+              // Update context memory with improved answer
+              this.contextMemory.addEntry({
+                questionType,
+                question,
+                answer,
+                timestamp: new Date(),
+                category,
+                improved: true
+              });
               Logger.success('✅ Verwende KI-optimierte Antwort');
             } else {
               const revisedOptions: FlexibleInputOptions = {
@@ -284,6 +338,15 @@ export class AIEnhancedQuestions {
 
           if (action === 'use') {
             answer = optimizedResponse.suggestion;
+            // Update context memory with improved answer
+            this.contextMemory.addEntry({
+              questionType,
+              question,
+              answer,
+              timestamp: new Date(),
+              category,
+              improved: true
+            });
             Logger.success('✅ Verwende KI-verbesserte Antwort');
           } else if (action === 'edit') {
             const revisedOptions: FlexibleInputOptions = {
@@ -580,6 +643,39 @@ export class AIEnhancedQuestions {
    */
   getAnalytics(): SessionAnalytics {
     return this.analytics;
+  }
+
+  /**
+   * Get context memory instance
+   */
+  getContextMemory(): ContextMemoryService {
+    return this.contextMemory;
+  }
+
+  /**
+   * Display current project context
+   */
+  displayProjectContext(): void {
+    const summary = this.contextMemory.getProjectSummary();
+    if (summary) {
+      Logger.info(chalk.cyan('\n📋 Aktueller Projekt-Kontext:'));
+      Logger.info(chalk.gray('─'.repeat(60)));
+      Logger.info(summary);
+      Logger.info(chalk.gray('─'.repeat(60)));
+    }
+  }
+
+  /**
+   * Check consistency of answers
+   */
+  checkConsistency(): void {
+    const check = this.contextMemory.detectInconsistencies();
+    if (!check.isConsistent) {
+      Logger.warning('⚠️ Mögliche Inkonsistenzen gefunden:');
+      check.issues.forEach(issue => {
+        Logger.warning(`  • ${issue}`);
+      });
+    }
   }
 }
 

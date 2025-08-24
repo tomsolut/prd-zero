@@ -192,12 +192,22 @@ Be direct but constructive. Focus on preventing typical solo developer pitfalls.
   /**
    * Challenge a user's answer with optimized prompts
    */
-  public async challengeAnswerOptimized(question: string, answer: string): Promise<OptimizedAIResponse | null> {
+  public async challengeAnswerOptimized(
+    question: string, 
+    answer: string,
+    contextHistory?: string
+  ): Promise<OptimizedAIResponse | null> {
     const language = this.detectLanguage(answer + ' ' + question) as Language;
     const questionType = QuestionTypeDetector.detectType(question);
     
-    // Get specialized prompt based on question type
-    const prompt = PromptTemplates.getChallengePrompt(questionType, language, question, answer);
+    // Get specialized prompt based on question type with context
+    const prompt = PromptTemplates.getChallengePrompt(
+      questionType, 
+      language, 
+      question, 
+      answer,
+      contextHistory
+    );
     const systemPrompt = PromptTemplates.getSystemPrompt(language);
     
     const response = await this.callClaude(prompt, systemPrompt, language);
@@ -296,7 +306,8 @@ If the answer is already MVP-ready, return:
     question: string, 
     answer: string, 
     questionType?: QuestionType,
-    previousWarnings?: Warning[]
+    previousWarnings?: Warning[],
+    contextHistory?: string
   ): Promise<string | null> {
     const language = this.detectLanguage(answer + ' ' + question) as Language;
     const detectedType = questionType || QuestionTypeDetector.detectType(question);
@@ -306,7 +317,8 @@ If the answer is already MVP-ready, return:
       question,
       answer,
       detectedType,
-      previousWarnings || []
+      previousWarnings || [],
+      contextHistory
     );
     
     const systemPrompt = PromptTemplates.getSystemPrompt(language);
