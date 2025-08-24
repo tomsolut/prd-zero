@@ -1,6 +1,8 @@
 import { PRDData } from '../types/index.js';
 import { AIService } from '../services/aiService.js';
 import type { SessionAnalytics as ISessionAnalytics } from '../services/sessionAnalytics.js';
+import { OptimizedAIResponse, Warning } from '../types/ai.js';
+// import { QuestionTypeDetector } from '../services/questionTypeDetector.js'; // Will be used in future phases
 
 // Simple SessionAnalytics implementation for AI tracking
 class SessionAnalytics implements Partial<ISessionAnalytics> {
@@ -36,7 +38,289 @@ export class AIEnhancedQuestions {
   }
 
   /**
-   * Ask a question with AI enhancement
+   * Display severity-based feedback with color coding
+   */
+  private displayOptimizedFeedback(response: OptimizedAIResponse): void {
+    // Assessment icon and color
+    const assessmentDisplay = {
+      good: { icon: '✅', color: chalk.green, label: 'MVP-Ready' },
+      warning: { icon: '⚠️', color: chalk.yellow, label: 'Needs Improvement' },
+      critical: { icon: '🚨', color: chalk.red, label: 'Critical Issue' }
+    };
+
+    const { icon, color, label } = assessmentDisplay[response.assessment];
+    
+    Logger.info('');
+    Logger.info(color(`${icon} ${label}`));
+    Logger.info(chalk.gray('─'.repeat(60)));
+    
+    // Main feedback
+    Logger.info(color('Feedback:'));
+    Logger.info(response.feedback);
+    
+    // Warnings if any
+    if (response.warnings && response.warnings.length > 0) {
+      Logger.info('');
+      Logger.info(color('Warnings:'));
+      response.warnings.forEach((warning: Warning) => {
+        const severityColor = warning.severity === 'high' ? chalk.red :
+                             warning.severity === 'medium' ? chalk.yellow :
+                             chalk.gray;
+        Logger.info(`  ${severityColor('•')} ${warning.message}`);
+      });
+    }
+    
+    // Next actions
+    if (response.next_actions && response.next_actions.length > 0) {
+      Logger.info('');
+      Logger.info(chalk.cyan('📋 Next Actions:'));
+      response.next_actions.forEach((action, index) => {
+        Logger.info(`  ${index + 1}. ${action}`);
+      });
+    }
+    
+    // Question-specific metrics
+    if (response.measurability_score !== undefined) {
+      Logger.info('');
+      Logger.info(chalk.gray(`Measurability Score: ${response.measurability_score}/10`));
+    }
+    
+    // Enhanced Tech Stack metrics
+    if (response.innovation_tokens !== undefined) {
+      const tokenColor = response.innovation_tokens.used > 2 ? chalk.red : chalk.green;
+      Logger.info('');
+      Logger.info(tokenColor(`💡 Innovation Tokens: ${response.innovation_tokens.used}/2`));
+      
+      if (response.innovation_tokens.details && response.innovation_tokens.details.length > 0) {
+        response.innovation_tokens.details.forEach(token => {
+          const riskColor = token.risk_level === 'high' ? chalk.red :
+                           token.risk_level === 'medium' ? chalk.yellow :
+                           chalk.green;
+          Logger.info(`  • ${token.tech}: ${token.token_cost} token (${riskColor(token.risk_level)} risk) - ${token.reason}`);
+        });
+      }
+    } else if (response.innovation_tokens_used !== undefined) {
+      // Fallback for simple token count
+      const tokenColor = response.innovation_tokens_used > 2 ? chalk.red : chalk.green;
+      Logger.info(tokenColor(`Innovation Tokens Used: ${response.innovation_tokens_used}/2`));
+    }
+    
+    // Skills Gap Analysis
+    if (response.skills_gap_analysis) {
+      Logger.info('');
+      Logger.info(chalk.cyan('📚 Skills Gap Analysis:'));
+      Logger.info(`  • New Technologies: ${response.skills_gap_analysis.new_technologies.join(', ')}`);
+      Logger.info(`  • Learning Hours Estimate: ${response.skills_gap_analysis.learning_hours_estimate}h`);
+      if (response.skills_gap_analysis.tutorial_hell_risk.length > 0) {
+        Logger.info(chalk.yellow(`  ⚠️ Tutorial Hell Risk: ${response.skills_gap_analysis.tutorial_hell_risk.join(', ')}`));
+      }
+      Logger.info(`  • Timeline Impact: +${response.skills_gap_analysis.timeline_impact_weeks} weeks`);
+    }
+    
+    // Compatibility and Solo Developer Scores
+    if (response.compatibility_score !== undefined) {
+      const compatColor = response.compatibility_score >= 7 ? chalk.green :
+                         response.compatibility_score >= 5 ? chalk.yellow :
+                         chalk.red;
+      Logger.info(compatColor(`🔧 Stack Compatibility: ${response.compatibility_score}/10`));
+    }
+    
+    if (response.solo_developer_score !== undefined) {
+      const soloColor = response.solo_developer_score >= 7 ? chalk.green :
+                        response.solo_developer_score >= 5 ? chalk.yellow :
+                        chalk.red;
+      Logger.info(soloColor(`👤 Solo Developer Score: ${response.solo_developer_score}/10`));
+    }
+    
+    // Tech Stack Recommendations
+    if (response.recommendations) {
+      Logger.info('');
+      Logger.info(chalk.cyan('🔄 Recommendations:'));
+      
+      if (response.recommendations.keep && response.recommendations.keep.length > 0) {
+        Logger.info(chalk.green('  ✅ Keep:'));
+        response.recommendations.keep.forEach(tech => {
+          Logger.info(`    • ${tech}`);
+        });
+      }
+      
+      if (response.recommendations.replace && response.recommendations.replace.length > 0) {
+        Logger.info(chalk.yellow('  🔄 Replace:'));
+        response.recommendations.replace.forEach(rec => {
+          Logger.info(`    • ${rec.current} → ${rec.suggested}`);
+          Logger.info(chalk.gray(`      ${rec.reason}`));
+        });
+      }
+      
+      if (response.recommendations.add_missing && response.recommendations.add_missing.length > 0) {
+        Logger.info(chalk.blue('  ➕ Add Missing:'));
+        response.recommendations.add_missing.forEach(tech => {
+          Logger.info(`    • ${tech}`);
+        });
+      }
+    }
+    
+    // Alternative Stacks
+    if (response.alternative_stacks && response.alternative_stacks.length > 0) {
+      Logger.info('');
+      Logger.info(chalk.cyan('🎯 Alternative Stack Options:'));
+      response.alternative_stacks.forEach((stack, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+        Logger.info(`  ${medal} ${stack.name}`);
+        Logger.info(`     Tech: ${stack.tech.join(', ')}`);
+        Logger.info(chalk.green(`     Pros: ${stack.pros.join(', ')}`));
+        Logger.info(chalk.yellow(`     Cons: ${stack.cons.join(', ')}`));
+        Logger.info(`     Learning: ${stack.learning_curve_weeks} weeks | Tokens: ${stack.innovation_tokens}`);
+      });
+    }
+    
+    if (response.timeline_weeks !== undefined) {
+      const timelineColor = response.timeline_weeks > 12 ? chalk.red : chalk.green;
+      Logger.info(timelineColor(`Timeline: ${response.timeline_weeks} weeks`));
+    }
+    
+    if (response.feature_count !== undefined) {
+      const featureColor = response.feature_count > 3 ? chalk.red : chalk.green;
+      Logger.info(featureColor(`Feature Count: ${response.feature_count}`));
+    }
+    
+    Logger.info(chalk.gray('─'.repeat(60)));
+  }
+
+  /**
+   * Ask a question with AI enhancement (optimized version)
+   */
+  async askWithAIOptimized(
+    question: string,
+    validator?: (value: string) => boolean | string,
+    defaultValue?: string
+  ): Promise<string> {
+    const startTime = Date.now();
+    const inputOptions: FlexibleInputOptions = {
+      defaultValue
+    };
+    let answer = await askFlexibleInput(question, inputOptions);
+    
+    if (this.aiMode === 'off') {
+      this.analytics.questionsAnswered++;
+      this.analytics.totalDuration += Date.now() - startTime;
+      return answer;
+    }
+
+    // Detect question type (for future use)
+    // const questionType = QuestionTypeDetector.detectType(question);
+    
+    // AI Challenge in active mode with optimized prompts
+    if (this.aiMode === 'active') {
+      const optimizedResponse = await this.aiService.challengeAnswerOptimized(question, answer);
+      
+      if (optimizedResponse) {
+        this.displayOptimizedFeedback(optimizedResponse);
+        this.analytics.aiInterventions++;
+        
+        // Handle based on assessment level
+        if (optimizedResponse.assessment === 'critical') {
+          Logger.error('🚨 Diese Antwort hat kritische Probleme und muss überarbeitet werden.');
+          
+          if (optimizedResponse.suggestion) {
+            Logger.info(chalk.yellow('\\n🤖 KI-Optimierte Version:'));
+            Logger.info(chalk.gray('─'.repeat(60)));
+            Logger.info(optimizedResponse.suggestion);
+            Logger.info(chalk.gray('─'.repeat(60)));
+            
+            const { action } = await inquirer.prompt([{
+              type: 'list',
+              name: 'action',
+              message: chalk.red('Diese Antwort muss überarbeitet werden:'),
+              choices: [
+                { name: 'Die KI-optimierte Version verwenden', value: 'use' },
+                { name: 'Meine Antwort manuell überarbeiten', value: 'edit' }
+              ]
+            }]);
+
+            if (action === 'use') {
+              answer = optimizedResponse.suggestion;
+              Logger.success('✅ Verwende KI-optimierte Antwort');
+            } else {
+              const revisedOptions: FlexibleInputOptions = {
+                defaultValue: answer
+              };
+              answer = await askFlexibleInput(
+                'Bitte überarbeiten Sie Ihre Antwort:',
+                revisedOptions
+              );
+              // Recursively check the revised answer
+              return this.askWithAIOptimized(question, validator, answer);
+            }
+          } else {
+            // No suggestion, user must revise
+            const revisedOptions: FlexibleInputOptions = {
+              defaultValue: answer
+            };
+            answer = await askFlexibleInput(
+              'Bitte überarbeiten Sie Ihre Antwort basierend auf dem Feedback:',
+              revisedOptions
+            );
+            // Recursively check the revised answer
+            return this.askWithAIOptimized(question, validator, answer);
+          }
+        } else if (optimizedResponse.assessment === 'warning' && optimizedResponse.suggestion) {
+          Logger.info(chalk.yellow('\\n🤖 KI-Verbesserte Version:'));
+          Logger.info(chalk.gray('─'.repeat(60)));
+          Logger.info(optimizedResponse.suggestion);
+          Logger.info(chalk.gray('─'.repeat(60)));
+          
+          const { action } = await inquirer.prompt([{
+            type: 'list',
+            name: 'action',
+            message: chalk.yellow('Empfehlung: Verwenden Sie die verbesserte Version'),
+            choices: [
+              { name: 'Die KI-verbesserte Version verwenden', value: 'use' },
+              { name: 'Meine ursprüngliche Antwort behalten', value: 'keep' },
+              { name: 'Meine Antwort manuell bearbeiten', value: 'edit' }
+            ],
+            default: 'use'
+          }]);
+
+          if (action === 'use') {
+            answer = optimizedResponse.suggestion;
+            Logger.success('✅ Verwende KI-verbesserte Antwort');
+          } else if (action === 'edit') {
+            const revisedOptions: FlexibleInputOptions = {
+              defaultValue: answer
+            };
+            answer = await askFlexibleInput(
+              'Bitte geben Sie Ihre überarbeitete Antwort ein:',
+              revisedOptions
+            );
+          }
+        }
+        
+        // Handle parking lot for MVP scope questions
+        if (optimizedResponse.parking_lot && optimizedResponse.parking_lot.length > 0) {
+          Logger.info(chalk.cyan('\\n📦 Features für Version 2 (Parking Lot):'));
+          optimizedResponse.parking_lot.forEach((feature, index) => {
+            Logger.info(`  ${index + 1}. ${feature}`);
+          });
+        }
+      }
+    }
+
+    // Validate with custom validator
+    if (validator) {
+      const validationResult = validator(answer);
+      if (validationResult !== true) {
+        Logger.error(validationResult as string);
+        return this.askWithAIOptimized(question, validator, answer);
+      }
+    }
+
+    this.displayCosts();
+    return answer;
+  }
+
+  /**
+   * Ask a question with AI enhancement (legacy version for backward compatibility)
    */
   async askWithAI(
     question: string,

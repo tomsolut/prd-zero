@@ -7,10 +7,14 @@ import {
   AIOptimizationResult,
   AIValidationResult,
   CLAUDE_PRICING,
-  TokenPricing
+  TokenPricing,
+  OptimizedAIResponse,
+  Warning
 } from '../types/ai.js';
 import { Logger } from '../utils/logger.js';
 import chalk from 'chalk';
+import { QuestionTypeDetector, QuestionType } from './questionTypeDetector.js';
+import { PromptTemplates, Language } from './promptTemplates.js';
 
 /**
  * AI Service for Claude integration with cost tracking
@@ -186,7 +190,53 @@ Be direct but constructive. Focus on preventing typical solo developer pitfalls.
   }
 
   /**
-   * Challenge a user's answer
+   * Challenge a user's answer with optimized prompts
+   */
+  public async challengeAnswerOptimized(question: string, answer: string): Promise<OptimizedAIResponse | null> {
+    const language = this.detectLanguage(answer + ' ' + question) as Language;
+    const questionType = QuestionTypeDetector.detectType(question);
+    
+    // Get specialized prompt based on question type
+    const prompt = PromptTemplates.getChallengePrompt(questionType, language, question, answer);
+    const systemPrompt = PromptTemplates.getSystemPrompt(language);
+    
+    const response = await this.callClaude(prompt, systemPrompt, language);
+    
+    if (response) {
+      this.recordInteraction('challenge', question, prompt, response.content, response.tokensUsed, response.cost);
+      
+      try {
+        const parsed = JSON.parse(response.content) as OptimizedAIResponse;
+        
+        // Ensure all required fields are present
+        if (!parsed.assessment || !parsed.feedback || !parsed.next_actions) {
+          // Fallback to simple response
+          return {
+            assessment: 'warning',
+            feedback: response.content,
+            warnings: [],
+            next_actions: ['Review and refine your answer']
+          } as OptimizedAIResponse;
+        }
+        
+        return parsed;
+      } catch (error) {
+        // Fallback if not valid JSON
+        Logger.warning('Failed to parse optimized AI response, using fallback');
+        return {
+          assessment: 'warning',
+          feedback: response.content,
+          warnings: [],
+          next_actions: ['Review the feedback and refine your answer']
+        } as OptimizedAIResponse;
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Challenge a user's answer (legacy method for backward compatibility)
    */
   public async challengeAnswer(question: string, answer: string): Promise<{ feedback: string; suggestion?: string } | null> {
     const language = this.detectLanguage(answer + ' ' + question);
@@ -240,7 +290,37 @@ If the answer is already MVP-ready, return:
   }
 
   /**
-   * Suggest improvements for an answer
+   * Suggest improvements with optimized context-aware prompts
+   */
+  public async suggestImprovementOptimized(
+    question: string, 
+    answer: string, 
+    questionType?: QuestionType,
+    previousWarnings?: Warning[]
+  ): Promise<string | null> {
+    const language = this.detectLanguage(answer + ' ' + question) as Language;
+    const detectedType = questionType || QuestionTypeDetector.detectType(question);
+    
+    const prompt = PromptTemplates.getImprovementPrompt(
+      language,
+      question,
+      answer,
+      detectedType,
+      previousWarnings || []
+    );
+    
+    const systemPrompt = PromptTemplates.getSystemPrompt(language);
+    const response = await this.callClaude(prompt, systemPrompt, language);
+    
+    if (response) {
+      this.recordInteraction('suggest', question, prompt, response.content, response.tokensUsed, response.cost);
+    }
+    
+    return response?.content || null;
+  }
+
+  /**
+   * Suggest improvements for an answer (legacy method)
    */
   public async suggestImprovement(question: string, answer: string): Promise<string | null> {
     const language = this.detectLanguage(answer + ' ' + question);

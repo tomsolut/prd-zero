@@ -242,28 +242,28 @@ async function collectAllQuestionsWithAI(sessionStartTime: Date, aiFlow: any): P
   // Start with core questions using AI enhancement
   Logger.section('Core Project Definition');
   
-  // Use AI-enhanced questions for core questions
-  const projectName = await aiFlow.askWithAI(
+  // Use optimized AI-enhanced questions for core questions
+  const projectName = await aiFlow.askWithAIOptimized(
     'What is the name of your project?',
     (v: string) => v.length >= 2 || 'Project name must be at least 2 characters'
   );
   
-  const problem = await aiFlow.askWithAI(
+  const problem = await aiFlow.askWithAIOptimized(
     'What problem does your project solve? (Be specific)',
     (v: string) => v.length >= 20 || 'Please provide a more detailed problem statement (min 20 chars)'
   );
   
-  const solution = await aiFlow.askWithAI(
+  const solution = await aiFlow.askWithAIOptimized(
     'How does your project solve this problem?',
     (v: string) => v.length >= 20 || 'Please provide a more detailed solution (min 20 chars)'
   );
   
-  const targetAudience = await aiFlow.askWithAI(
+  const targetAudience = await aiFlow.askWithAIOptimized(
     'Who is your target audience? (Be specific about demographics)',
     (v: string) => v.length >= 10 || 'Please be more specific about your target audience'
   );
   
-  const uniqueValue = await aiFlow.askWithAI(
+  const uniqueValue = await aiFlow.askWithAIOptimized(
     'What makes your solution unique compared to existing alternatives?',
     (v: string) => v.length >= 20 || 'Please provide more detail about your unique value'
   );
@@ -306,7 +306,7 @@ async function collectAllQuestionsWithAI(sessionStartTime: Date, aiFlow: any): P
   // Timeline Questions with AI
   Logger.section('Timeline Planning');
   
-  const timelineWeeks = await aiFlow.askWithAI(
+  const timelineWeeks = await aiFlow.askWithAIOptimized(
     'How many weeks do you estimate for MVP development? (be realistic)',
     (v: string) => {
       const weeks = parseInt(v);
@@ -317,17 +317,17 @@ async function collectAllQuestionsWithAI(sessionStartTime: Date, aiFlow: any): P
   // Technical Questions with AI
   Logger.section('Technical Decisions');
   
-  const techStackFrontend = await aiFlow.askWithAI(
+  const techStackFrontend = await aiFlow.askWithAIOptimized(
     'What frontend technology will you use? (e.g., React, Vue, vanilla JS)',
     (v: string) => v.length >= 2 || 'Please specify a frontend technology'
   );
   
-  const techStackBackend = await aiFlow.askWithAI(
+  const techStackBackend = await aiFlow.askWithAIOptimized(
     'What backend technology will you use? (e.g., Node.js, Python, Rails)',
     (v: string) => v.length >= 2 || 'Please specify a backend technology'
   );
   
-  const techStackDatabase = await aiFlow.askWithAI(
+  const techStackDatabase = await aiFlow.askWithAIOptimized(
     'What database will you use? (e.g., PostgreSQL, MongoDB, Firebase)',
     (v: string) => v.length >= 2 || 'Please specify a database'
   );
@@ -451,27 +451,27 @@ async function askQuickStartQuestionsWithAI(sessionStartTime: Date, aiFlow: any)
   // Project Questions with AI
   Logger.section('Projektinformationen');
   
-  const projectName = await aiFlow.askWithAI(
+  const projectName = await aiFlow.askWithAIOptimized(
     'Wie lautet der Name Ihres Projekts?',
     (v: string) => v.length >= 2 || 'Projektname muss mindestens 2 Zeichen lang sein'
   );
   
-  const description = await aiFlow.askWithAI(
+  const description = await aiFlow.askWithAIOptimized(
     'Beschreiben Sie Ihr Projekt in 2-3 Sätzen:',
     (v: string) => v.length >= 10 || 'Bitte geben Sie eine detailliertere Beschreibung (min. 10 Zeichen)'
   );
   
-  const targetAudience = await aiFlow.askWithAI(
+  const targetAudience = await aiFlow.askWithAIOptimized(
     'Wer ist Ihre Zielgruppe?',
     (v: string) => v.length >= 10 || 'Bitte seien Sie spezifischer bei Ihrer Zielgruppe'
   );
   
-  const problem = await aiFlow.askWithAI(
+  const problem = await aiFlow.askWithAIOptimized(
     'Welches Problem löst Ihr Projekt?',
     (v: string) => v.length >= 20 || 'Bitte geben Sie eine detailliertere Problembeschreibung (min. 20 Zeichen)'
   );
   
-  const uniqueValue = await aiFlow.askWithAI(
+  const uniqueValue = await aiFlow.askWithAIOptimized(
     'Was macht Ihre Lösung einzigartig?',
     (v: string) => v.length >= 10 || 'Bitte beschreiben Sie, was Ihre Lösung einzigartig macht'
   );
@@ -479,7 +479,7 @@ async function askQuickStartQuestionsWithAI(sessionStartTime: Date, aiFlow: any)
   // MVP Questions with AI
   Logger.section('MVP-Umfang');
   
-  const numFeaturesStr = await aiFlow.askWithAI(
+  const numFeaturesStr = await aiFlow.askWithAIOptimized(
     'Wie viele Kernfunktionen soll Ihr MVP haben? (3-5 empfohlen für echtes MVP):',
     (v: string) => {
       const num = parseInt(v);
@@ -510,7 +510,7 @@ async function askQuickStartQuestionsWithAI(sessionStartTime: Date, aiFlow: any)
   // Timeline with AI
   Logger.section('Zeitplan');
   
-  const timelineWeeks = await aiFlow.askWithAI(
+  const timelineWeeks = await aiFlow.askWithAIOptimized(
     'Wie viele Wochen für die MVP-Entwicklung? (seien Sie realistisch):',
     (v: string) => {
       const weeks = parseInt(v);

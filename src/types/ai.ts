@@ -124,3 +124,82 @@ export interface AIValidationResult {
   tokensUsed?: number;
   cost?: number;
 }
+
+// Enhanced AI Response Types for Optimized Prompts
+export type AssessmentLevel = 'good' | 'warning' | 'critical';
+export type WarningSeverity = 'low' | 'medium' | 'high';
+
+export interface Warning {
+  type: string;
+  severity: WarningSeverity;
+  message: string;
+}
+
+// Innovation Token Details for Tech Stack
+export interface InnovationToken {
+  tech: string;
+  token_cost: number;
+  risk_level: 'low' | 'medium' | 'high';
+  reason: string;
+}
+
+// Skills Gap Analysis
+export interface SkillsGapAnalysis {
+  new_technologies: string[];
+  learning_hours_estimate: number;
+  tutorial_hell_risk: string[];
+  timeline_impact_weeks: number;
+}
+
+// Tech Stack Recommendation
+export interface TechStackRecommendation {
+  current: string;
+  suggested: string;
+  reason: string;
+}
+
+// Alternative Stack Option
+export interface AlternativeStack {
+  name: string;
+  tech: string[];
+  pros: string[];
+  cons: string[];
+  learning_curve_weeks: number;
+  innovation_tokens: number;
+}
+
+export interface OptimizedAIResponse {
+  assessment: AssessmentLevel;
+  feedback: string;
+  warnings: Warning[];
+  suggestion?: string;
+  next_actions: string[];
+  // Question-specific fields
+  validation_required?: boolean;
+  measurability_score?: number;
+  feature_count?: number;
+  scope_violation?: boolean;
+  parking_lot?: string[];
+  innovation_tokens_used?: number;
+  complexity_score?: number;
+  boring_tech_recommendation?: string;
+  timeline_weeks?: number;
+  timeline_violation?: boolean;
+  validation_gates_missing?: string[];
+  realism_score?: number;
+  // Enhanced Tech Stack fields
+  skills_gap_analysis?: SkillsGapAnalysis;
+  compatibility_score?: number;
+  solo_developer_score?: number;
+  innovation_tokens?: {
+    used: number;
+    details: InnovationToken[];
+  };
+  recommendations?: {
+    keep: string[];
+    replace: TechStackRecommendation[];
+    add_missing: string[];
+  };
+  alternative_stacks?: AlternativeStack[];
+  final_recommendation?: string;
+}
