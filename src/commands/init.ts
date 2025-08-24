@@ -13,10 +13,6 @@ import { Validator } from '../validators/index.js';
 import { runInteractiveValidation } from '../validators/validationIntegrator.js';
 import { FileSystem } from '../utils/fileSystem.js';
 import { v4 as uuidv4 } from 'uuid';
-import * as dotenv from 'dotenv';
-
-// Load environment variables
-dotenv.config();
 
 interface InitOptions {
   output: string;
@@ -489,12 +485,13 @@ async function askQuickStartQuestionsWithAI(sessionStartTime: Date, aiFlow: any)
   );
   const numFeatures = parseInt(numFeaturesStr);
   
-  const coreFeatures = await aiFlow.askListWithAI(
-    `Listen Sie Ihre ${numFeatures} MVP-Kernfunktionen auf:`,
+  // Use individual prompts for MVP features for better user experience
+  const coreFeatures = await aiFlow.askIndividualItemsWithAI(
+    `Geben Sie Ihre ${numFeatures} MVP-Kernfunktionen ein:`,
+    numFeatures,
     {
-      minItems: numFeatures,
-      maxItems: numFeatures,
-      itemMinLength: 5
+      itemMinLength: 5,
+      itemName: 'Kernfunktion'
     }
   );
   

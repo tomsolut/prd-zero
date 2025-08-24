@@ -2,7 +2,7 @@ import { PRDData } from '../types/index.js';
 import { AIService } from '../services/aiService.js';
 import type { SessionAnalytics as ISessionAnalytics } from '../services/sessionAnalytics.js';
 import { OptimizedAIResponse, Warning } from '../types/ai.js';
-import { QuestionTypeDetector } from '../services/questionTypeDetector.js';
+import { QuestionTypeDetector, QuestionType } from '../services/questionTypeDetector.js';
 import { ContextMemoryService } from '../services/contextMemory.js';
 import { QuestionCategory } from '../types/contextMemory.js';
 
@@ -319,25 +319,47 @@ export class AIEnhancedQuestions {
             // Recursively check the revised answer
             return this.askWithAIOptimized(question, validator, answer);
           }
-        } else if (optimizedResponse.assessment === 'warning' && optimizedResponse.suggestion) {
-          Logger.info(chalk.yellow('\\n🤖 KI-Verbesserte Version:'));
-          Logger.info(chalk.gray('─'.repeat(60)));
-          Logger.info(optimizedResponse.suggestion);
-          Logger.info(chalk.gray('─'.repeat(60)));
+        } else if (optimizedResponse.assessment === 'good') {
+          // For good assessments, give user a moment to read the positive feedback
+          // This prevents the app from immediately moving to the next question
+          if (questionType === QuestionType.MVP_FEATURE_COUNT || 
+              optimizedResponse.parking_lot || 
+              optimizedResponse.feature_count !== undefined) {
+            // For certain question types, wait for user confirmation
+            await inquirer.prompt([{
+              type: 'input',
+              name: 'continue',
+              message: chalk.green('Drücken Sie Enter, um fortzufahren...'),
+              default: ''
+            }]);
+          }
+        } else if (optimizedResponse.assessment === 'warning') {
+          // Always offer interaction for warnings, even without explicit suggestion
+          if (optimizedResponse.suggestion) {
+            Logger.info(chalk.yellow('\\n🤖 KI-Verbesserte Version:'));
+            Logger.info(chalk.gray('─'.repeat(60)));
+            Logger.info(optimizedResponse.suggestion);
+            Logger.info(chalk.gray('─'.repeat(60)));
+          }
+          
+          const choices = optimizedResponse.suggestion ? [
+            { name: 'Die KI-verbesserte Version verwenden', value: 'use' },
+            { name: 'Meine ursprüngliche Antwort behalten', value: 'keep' },
+            { name: 'Meine Antwort manuell bearbeiten', value: 'edit' }
+          ] : [
+            { name: 'Meine Antwort basierend auf dem Feedback überarbeiten', value: 'edit' },
+            { name: 'Meine ursprüngliche Antwort behalten', value: 'keep' }
+          ];
           
           const { action } = await inquirer.prompt([{
             type: 'list',
             name: 'action',
-            message: chalk.yellow('Empfehlung: Verwenden Sie die verbesserte Version'),
-            choices: [
-              { name: 'Die KI-verbesserte Version verwenden', value: 'use' },
-              { name: 'Meine ursprüngliche Antwort behalten', value: 'keep' },
-              { name: 'Meine Antwort manuell bearbeiten', value: 'edit' }
-            ],
-            default: 'use'
+            message: chalk.yellow('Was möchten Sie tun?'),
+            choices,
+            default: optimizedResponse.suggestion ? 'use' : 'edit'
           }]);
 
-          if (action === 'use') {
+          if (action === 'use' && optimizedResponse.suggestion) {
             answer = optimizedResponse.suggestion;
             // Update context memory with improved answer
             this.contextMemory.addEntry({
@@ -357,6 +379,12 @@ export class AIEnhancedQuestions {
               'Bitte geben Sie Ihre überarbeitete Antwort ein:',
               revisedOptions
             );
+            // Recursively check the revised answer
+            return this.askWithAIOptimized(question, validator, answer);
+          } else if (action === 'keep') {
+            // User keeps original answer despite warning
+            Logger.info('✔️ Behalte ursprüngliche Antwort');
+            // Context memory was already updated at the beginning of the function
           }
         }
         
@@ -542,6 +570,69 @@ export class AIEnhancedQuestions {
 
     // Record question time (removed duplicate)
     this.displayCosts();
+    
+    return items;
+  }
+
+  /**
+   * Ask for items individually with AI feedback
+   * This method prompts for each item one by one, useful for MVP features
+   */
+  async askIndividualItemsWithAI(
+    basePrompt: string,
+    count: number,
+    options: {
+      itemMinLength?: number;
+      itemName?: string;
+    } = {}
+  ): Promise<string[]> {
+    const { itemMinLength = 5, itemName = 'Feature' } = options;
+    const items: string[] = [];
+    
+    Logger.info(chalk.cyan(basePrompt));
+    
+    for (let i = 0; i < count; i++) {
+      const itemNumber = i + 1;
+      const prompt = `${itemName} ${itemNumber} von ${count}:`;
+      
+      let item = await this.askWithAIOptimized(
+        prompt,
+        (v: string) => v.length >= itemMinLength || `${itemName} muss mindestens ${itemMinLength} Zeichen lang sein`,
+        ''
+      );
+      
+      items.push(item);
+      
+      // Show progress
+      if (itemNumber < count) {
+        Logger.info(chalk.green(`✔️ ${itemName} ${itemNumber} erfasst. Weiter mit ${itemName} ${itemNumber + 1}...`));
+      }
+    }
+    
+    // AI can suggest improvements to the list
+    if (this.aiMode !== 'off') {
+      const suggestions = await this.aiService.suggestListItems(basePrompt, items);
+      
+      if (suggestions && suggestions.length > 0) {
+        Logger.info(chalk.cyan('🤖 AI Vorschläge zur Verbesserung:'));
+        suggestions.forEach(s => Logger.info(`  • ${s}`));
+        this.analytics.aiInterventions++;
+        
+        if (this.aiMode === 'active') {
+          const { useImproved } = await inquirer.prompt([{
+            type: 'confirm',
+            name: 'useImproved',
+            message: 'Möchten Sie die AI-Vorschläge übernehmen?',
+            default: false
+          }]);
+          
+          if (useImproved) {
+            // Replace items with suggestions if user agrees
+            return suggestions;
+          }
+        }
+      }
+    }
     
     return items;
   }

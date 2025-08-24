@@ -13,16 +13,274 @@ export class PromptTemplates {
 
 Deine Expertise basiert auf Research erfolgreicher Solo-Entwickler wie Pieter Levels ($170k/Monat) und den Lean Startup-Prinzipien. Du enforcest strikt: max 3 Features, max 12 Wochen Timeline, max 2 Innovation Tokens, Validation vor Development.
 
+WICHTIG: Wenn ein JSON-Format angefordert wird, antworte NUR mit dem JSON-Objekt. Kein Text davor oder danach.
+
 Antworte auf Deutsch. Sei direkt aber konstruktiv. Fokus auf Prevention der typischen Solo-Entwickler-Fallen.`,
     
     en: `You are an experienced solo developer coach with 10+ years of experience launching successful MVPs. You know the typical traps: Analysis Paralysis (70% of solo MVPs fail from this), Feature Creep, Over-Engineering, and unrealistic timelines.
 
 Your expertise is based on research of successful solo developers like Pieter Levels ($170k/month) and Lean Startup principles. You strictly enforce: max 3 features, max 12 weeks timeline, max 2 innovation tokens, validation before development.
 
+IMPORTANT: When a JSON format is requested, respond ONLY with the JSON object. No text before or after.
+
 Be direct but constructive. Focus on preventing typical solo developer pitfalls.`
   };
 
   private static readonly CHALLENGE_PROMPTS: Record<QuestionType, Record<Language, string>> = {
+    [QuestionType.PROJECT_NAME]: {
+      de: `FRAGE: "{question}"
+ANTWORT: "{answer}"
+QUESTION_TYPE: "project_name"
+{contextHistory}
+
+Als Solo-Entwickler-Coach, bewerte diesen Projektnamen:
+
+MVP-NAMING KRITERIEN:
+- Spezifisch und memorable (nicht generisch)
+- SEO-optimiert und suchbar
+- Domain-Verfügbarkeit realistisch
+- Klare Verbindung zum Problem/Lösung
+- Keine Trademark-Konflikte wahrscheinlich
+
+RED FLAGS:
+- Zu generische Namen ("Daily Log", "Track App")
+- Zu breiter Scope impliziert ("All-in-One")
+- Schwer auszusprechen/merken
+- SEO-unmöglich (zu viele Konkurrenzen)
+- Feature Creep suggerierend
+
+ERFOLGREICHE MVP-NAMEN:
+- NomadList (spezifisch, memorable)
+- PhotoPea (klar, einfach)
+- RemoteOK (direkt, action-oriented)
+
+WICHTIG: Antworte NUR mit einem JSON-Objekt. Kein Text vor oder nach dem JSON.
+
+Gib EXAKT dieses JSON-Format zurück:
+{
+  "assessment": "good|warning|critical",
+  "feedback": "Namens-Analyse max 100 Wörter",
+  "warnings": [
+    {
+      "type": "too_generic|too_broad|seo_difficult|trademark_risk",
+      "severity": "low|medium|high",
+      "message": "Spezifische Warnung"
+    }
+  ],
+  "suggestion": "Optimierter Name (nur wenn nötig)",
+  "next_actions": ["Domain prüfen", "5 Nutzer nach Meinung fragen"],
+  "seo_score": 1-10,
+  "memorability_score": 1-10
+}
+
+Antworte NUR mit dem JSON. Keine zusätzlichen Erklärungen.`,
+      en: `QUESTION: "{question}"
+ANSWER: "{answer}"
+QUESTION_TYPE: "project_name"
+{contextHistory}
+
+As a solo developer coach, evaluate this project name:
+
+MVP NAMING CRITERIA:
+- Specific and memorable (not generic)
+- SEO-optimized and searchable
+- Domain availability realistic
+- Clear connection to problem/solution
+- No likely trademark conflicts
+
+RED FLAGS:
+- Too generic names ("Daily Log", "Track App")
+- Implies too broad scope ("All-in-One")
+- Hard to pronounce/remember
+- SEO-impossible (too much competition)
+- Suggests feature creep
+
+SUCCESSFUL MVP NAMES:
+- NomadList (specific, memorable)
+- PhotoPea (clear, simple)
+- RemoteOK (direct, action-oriented)
+
+IMPORTANT: Respond ONLY with a JSON object. No text before or after the JSON.
+
+Return EXACTLY this JSON format:
+{
+  "assessment": "good|warning|critical",
+  "feedback": "Name analysis max 100 words",
+  "warnings": [
+    {
+      "type": "too_generic|too_broad|seo_difficult|trademark_risk",
+      "severity": "low|medium|high",
+      "message": "Specific warning"
+    }
+  ],
+  "suggestion": "Optimized name (only if needed)",
+  "next_actions": ["Check domain", "Ask 5 users for opinion"],
+  "seo_score": 1-10,
+  "memorability_score": 1-10
+}
+
+Respond ONLY with the JSON. No additional explanations.`
+    },
+    [QuestionType.PROJECT_DESCRIPTION]: {
+      de: `FRAGE: "{question}"
+ANTWORT: "{answer}"
+QUESTION_TYPE: "project_description"
+{contextHistory}
+
+Als Solo-Entwickler-Coach, bewerte diese Projektbeschreibung:
+
+BESCHREIBUNGS-KRITERIEN:
+- Klar und prägnant (2-3 Sätze)
+- Zielgruppe explizit genannt
+- Kernfunktionalität erklärt
+- Problem-Lösung-Fit erkennbar
+- Keine Feature-Liste (das kommt später)
+
+RED FLAGS:
+- Zu vage ("hilft Nutzern", "macht es einfacher")
+- Feature-Auflistung statt Kern-Nutzen
+- Keine spezifische Zielgruppe
+- Zu technisch/jargon-lastig
+- Über 3 Sätze
+
+WICHTIG: Antworte NUR mit einem JSON-Objekt. Kein Text vor oder nach dem JSON.
+
+Gib EXAKT dieses JSON-Format zurück:
+{
+  "assessment": "good|warning|critical",
+  "feedback": "Beschreibungs-Analyse max 100 Wörter",
+  "warnings": [
+    {
+      "type": "too_vague|too_long|missing_audience|feature_list",
+      "severity": "low|medium|high",
+      "message": "Spezifische Warnung"
+    }
+  ],
+  "suggestion": "Verbesserte Beschreibung (nur wenn nötig)",
+  "next_actions": ["Zielgruppe spezifizieren", "Kernnutzen klarer formulieren"],
+  "clarity_score": 1-10
+}
+
+Antworte NUR mit dem JSON. Keine zusätzlichen Erklärungen.`,
+      en: `QUESTION: "{question}"
+ANSWER: "{answer}"
+QUESTION_TYPE: "project_description"
+{contextHistory}
+
+As a solo developer coach, evaluate this project description:
+
+DESCRIPTION CRITERIA:
+- Clear and concise (2-3 sentences)
+- Target audience explicitly mentioned
+- Core functionality explained
+- Problem-solution fit evident
+- No feature list (that comes later)
+
+RED FLAGS:
+- Too vague ("helps users", "makes it easier")
+- Feature listing instead of core value
+- No specific target audience
+- Too technical/jargon-heavy
+- Over 3 sentences
+
+IMPORTANT: Respond ONLY with a JSON object. No text before or after the JSON.
+
+Return EXACTLY this JSON format:
+{
+  "assessment": "good|warning|critical",
+  "feedback": "Description analysis max 100 words",
+  "warnings": [
+    {
+      "type": "too_vague|too_long|missing_audience|feature_list",
+      "severity": "low|medium|high",
+      "message": "Specific warning"
+    }
+  ],
+  "suggestion": "Improved description (only if needed)",
+  "next_actions": ["Specify target audience", "Clarify core value"],
+  "clarity_score": 1-10
+}
+
+Respond ONLY with the JSON. No additional explanations.`
+    },
+    [QuestionType.MVP_FEATURE_COUNT]: {
+      de: `FRAGE: "{question}"
+ANTWORT: "{answer}"
+QUESTION_TYPE: "mvp_feature_count"
+{contextHistory}
+
+Als Solo-Entwickler-Coach, bewerte diese Feature-Anzahl für den MVP:
+
+OPTIMALE MVP-GRÖSSE:
+- 3 Features = Ideal für Solo-Developer (empfohlen)
+- 4-5 Features = Noch machbar, aber riskant
+- >5 Features = Zu viel, Scope Creep garantiert
+- <3 Features = Möglicherweise zu wenig Value
+
+RED FLAGS:
+- Mehr als 5 Features geplant
+- Unrealistische Zeitschätzung für Feature-Anzahl
+- Keine klare Priorisierung erkennbar
+
+WICHTIG: Antworte NUR mit einem JSON-Objekt. Kein Text vor oder nach dem JSON.
+WICHTIG: Füge KEINE nächste Frage oder Aufforderung in deine Antwort ein.
+
+Gib EXAKT dieses JSON-Format zurück:
+{
+  "assessment": "good|warning|critical",
+  "feedback": "Bewertung der Feature-Anzahl max 100 Wörter",
+  "warnings": [
+    {
+      "type": "scope_creep|too_few|too_many",
+      "severity": "low|medium|high",
+      "message": "Spezifische Warnung"
+    }
+  ],
+  "feature_count": [Zahl aus der Antwort],
+  "next_actions": ["Features in User Stories definieren", "Effort pro Feature schätzen"],
+  "parking_lot": ["Trainer-Dashboard", "Team-Vergleiche", "KI-Prognosen", "Eltern-Zugang"]
+}
+
+Antworte NUR mit dem JSON. Keine zusätzlichen Fragen oder Aufforderungen.`,
+      en: `QUESTION: "{question}"
+ANSWER: "{answer}"
+QUESTION_TYPE: "mvp_feature_count"
+{contextHistory}
+
+As a solo developer coach, evaluate this feature count for the MVP:
+
+OPTIMAL MVP SIZE:
+- 3 features = Ideal for solo developer (recommended)
+- 4-5 features = Still manageable, but risky
+- >5 features = Too much, scope creep guaranteed
+- <3 features = Possibly insufficient value
+
+RED FLAGS:
+- More than 5 features planned
+- Unrealistic time estimate for feature count
+- No clear prioritization evident
+
+IMPORTANT: Respond ONLY with a JSON object. No text before or after the JSON.
+IMPORTANT: Do NOT include any next question or prompt in your response.
+
+Return EXACTLY this JSON format:
+{
+  "assessment": "good|warning|critical",
+  "feedback": "Feature count evaluation max 100 words",
+  "warnings": [
+    {
+      "type": "scope_creep|too_few|too_many",
+      "severity": "low|medium|high",
+      "message": "Specific warning"
+    }
+  ],
+  "feature_count": [number from answer],
+  "next_actions": ["Define features as user stories", "Estimate effort per feature"],
+  "parking_lot": ["Trainer dashboard", "Team comparisons", "AI predictions", "Parent access"]
+}
+
+Respond ONLY with the JSON. No additional questions or prompts.`
+    },
     [QuestionType.PROBLEM_VALIDATION]: {
       de: `FRAGE: "{question}"
 ANTWORT: "{answer}"
@@ -659,12 +917,21 @@ Return the improved answer directly without prefix. Make it concrete, actionable
   ): string {
     let template = this.CHALLENGE_PROMPTS[questionType][language];
     
-    // Add context if provided
+    // Replace context history placeholder or add at beginning
     if (contextHistory) {
-      const contextPrefix = language === 'de' 
-        ? `${contextHistory}\n\n` 
-        : `${contextHistory}\n\n`;
-      template = contextPrefix + template;
+      // If template has {contextHistory} placeholder, replace it
+      if (template.includes('{contextHistory}')) {
+        template = template.replace('{contextHistory}', contextHistory);
+      } else {
+        // Otherwise add at the beginning
+        const contextPrefix = language === 'de' 
+          ? `${contextHistory}\n\n` 
+          : `${contextHistory}\n\n`;
+        template = contextPrefix + template;
+      }
+    } else {
+      // Remove empty placeholder if no context
+      template = template.replace('{contextHistory}\n', '').replace('{contextHistory}', '');
     }
     
     return template
@@ -711,6 +978,26 @@ Return the improved answer directly without prefix. Make it concrete, actionable
     language: Language
   ): string {
     const requirements: Record<QuestionType, Record<Language, string>> = {
+      [QuestionType.PROJECT_NAME]: {
+        de: `CONTEXT-SPEZIFISCHE VERBESSERUNG:
+- Spezifischer und einprägsamer Name
+- SEO-optimiert und suchbar
+- Klare Verbindung zum Problem/Lösung`,
+        en: `CONTEXT-SPECIFIC IMPROVEMENT:
+- Specific and memorable name
+- SEO-optimized and searchable
+- Clear connection to problem/solution`
+      },
+      [QuestionType.PROJECT_DESCRIPTION]: {
+        de: `CONTEXT-SPEZIFISCHE VERBESSERUNG:
+- Klar und prägnant (2-3 Sätze)
+- Zielgruppe explizit genannt
+- Kernfunktionalität erklärt`,
+        en: `CONTEXT-SPECIFIC IMPROVEMENT:
+- Clear and concise (2-3 sentences)
+- Target audience explicitly mentioned
+- Core functionality explained`
+      },
       [QuestionType.PROBLEM_VALIDATION]: {
         de: `CONTEXT-SPEZIFISCHE VERBESSERUNG:
 - Spezifische Persona statt generischer Zielgruppe
@@ -730,6 +1017,16 @@ Return the improved answer directly without prefix. Make it concrete, actionable
 - Exactly 15 words for value prop
 - SMART success metrics
 - Concrete benefits instead of vague promises`
+      },
+      [QuestionType.MVP_FEATURE_COUNT]: {
+        de: `CONTEXT-SPEZIFISCHE VERBESSERUNG:
+- Ideale Anzahl: 3 Features für Solo-Developer
+- Klare Scope-Limitierung
+- Realistische Umsetzung`,
+        en: `CONTEXT-SPECIFIC IMPROVEMENT:
+- Ideal count: 3 features for solo developer
+- Clear scope limitation
+- Realistic implementation`
       },
       [QuestionType.MVP_SCOPE]: {
         de: `CONTEXT-SPEZIFISCHE VERBESSERUNG:

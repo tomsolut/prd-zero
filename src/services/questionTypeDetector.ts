@@ -3,9 +3,12 @@
  */
 
 export enum QuestionType {
+  PROJECT_NAME = 'project_name',
+  PROJECT_DESCRIPTION = 'project_description',
   PROBLEM_VALIDATION = 'problem_validation',
   VALUE_PROPOSITION = 'value_proposition',
   MVP_SCOPE = 'mvp_scope',
+  MVP_FEATURE_COUNT = 'mvp_feature_count',
   TECH_STACK = 'tech_stack',
   LAUNCH_PLAN = 'launch_plan',
   GENERIC = 'generic'
@@ -24,6 +27,25 @@ interface QuestionTypeConfig {
 
 export class QuestionTypeDetector {
   private static readonly QUESTION_CONFIGS: QuestionTypeConfig[] = [
+    {
+      type: QuestionType.PROJECT_NAME,
+      keywordSets: [
+        { keywords: ['name', 'heißt', 'called', 'bezeichnung', 'lautet'], weight: 3 },
+        { keywords: ['wie', 'what'], weight: 2 },
+        { keywords: ['projekt', 'project'], weight: 1 }
+      ],
+      minScore: 4
+    },
+    {
+      type: QuestionType.PROJECT_DESCRIPTION,
+      keywordSets: [
+        { keywords: ['beschreiben', 'describe', 'beschreibung', 'description'], weight: 3 },
+        { keywords: ['projekt', 'project', 'app', 'application'], weight: 2 },
+        { keywords: ['sätzen', 'sentences', 'explain', 'erklären'], weight: 2 },
+        { keywords: ['was', 'what', 'wie', 'how'], weight: 1 }
+      ],
+      minScore: 3
+    },
     {
       type: QuestionType.PROBLEM_VALIDATION,
       keywordSets: [
@@ -45,12 +67,22 @@ export class QuestionTypeDetector {
       minScore: 3
     },
     {
+      type: QuestionType.MVP_FEATURE_COUNT,
+      keywordSets: [
+        { keywords: ['wie viele', 'how many', 'anzahl'], weight: 3 },
+        { keywords: ['kernfunktionen', 'features', 'funktionen'], weight: 3 },
+        { keywords: ['mvp', 'minimum'], weight: 2 },
+        { keywords: ['empfohlen', 'recommended'], weight: 1 }
+      ],
+      minScore: 4
+    },
+    {
       type: QuestionType.MVP_SCOPE,
       keywordSets: [
-        { keywords: ['feature', 'functionality', 'capability'], weight: 3 },
-        { keywords: ['mvp', 'minimum', 'core', 'essential'], weight: 3 },
-        { keywords: ['scope', 'include', 'exclude', 'out of scope'], weight: 2 },
-        { keywords: ['list', 'what', 'which'], weight: 1 }
+        { keywords: ['listen', 'list', 'nennen', 'aufzählen'], weight: 3 },
+        { keywords: ['feature', 'functionality', 'capability', 'funktionen'], weight: 3 },
+        { keywords: ['mvp', 'minimum', 'core', 'essential'], weight: 2 },
+        { keywords: ['scope', 'include', 'exclude', 'out of scope'], weight: 1 }
       ],
       minScore: 3
     },
@@ -122,6 +154,22 @@ export class QuestionTypeDetector {
    */
   public static getValidationRequirements(type: QuestionType): string[] {
     switch (type) {
+      case QuestionType.PROJECT_NAME:
+        return [
+          'Specific and memorable name',
+          'SEO-friendly and searchable',
+          'Domain availability checked',
+          'Clear connection to problem/solution'
+        ];
+      
+      case QuestionType.PROJECT_DESCRIPTION:
+        return [
+          'Clear and concise description',
+          '2-3 sentences maximum',
+          'Target audience mentioned',
+          'Core functionality explained'
+        ];
+      
       case QuestionType.PROBLEM_VALIDATION:
         return [
           'Specific persona (not generic role)',
@@ -136,6 +184,14 @@ export class QuestionTypeDetector {
           'SMART success metrics',
           'Concrete benefits (not vague promises)',
           'Clear differentiation from alternatives'
+        ];
+      
+      case QuestionType.MVP_FEATURE_COUNT:
+        return [
+          'Realistic number (3-5 for MVP)',
+          'Avoids scope creep',
+          'Manageable for solo developer',
+          'Clear scope limitation'
         ];
       
       case QuestionType.MVP_SCOPE:

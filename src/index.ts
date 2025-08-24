@@ -1,8 +1,53 @@
 #!/usr/bin/env node
 
+import * as dotenv from 'dotenv';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { initCommand } from './commands/init.js';
+import { fileURLToPath } from 'url';
+import { dirname, join, resolve } from 'path';
+import { existsSync } from 'fs';
+
+// Get the directory of the current module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Function to find and load .env file
+function loadEnvFile() {
+  // Possible locations for .env file (in priority order)
+  const envPaths = [
+    // 1. Project root (when installed locally or linked)
+    join(__dirname, '..', '.env'),
+    // 2. Source directory's parent (for development)
+    join(__dirname, '..', '..', '.env'),
+    // 3. Actual installation location for global installs
+    resolve(__dirname, '..', '..', '..', 'prd-zero', '.env'),
+    // 4. Current working directory (user's choice)
+    join(process.cwd(), '.env'),
+    // 5. User's home directory
+    join(process.env.HOME || process.env.USERPROFILE || '', '.env')
+  ];
+
+  // Try to load from each path
+  for (const envPath of envPaths) {
+    if (existsSync(envPath)) {
+      const result = dotenv.config({ path: envPath });
+      if (!result.error && process.env.ANTHROPIC_API_KEY) {
+        // Successfully loaded with API key
+        if (process.env.DEBUG === 'true') {
+          console.log(chalk.gray(`Loaded .env from: ${envPath}`));
+        }
+        return;
+      }
+    }
+  }
+  
+  // Fallback: try default dotenv behavior
+  dotenv.config();
+}
+
+// Load environment variables
+loadEnvFile();
 
 const program = new Command();
 

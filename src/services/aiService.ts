@@ -216,34 +216,166 @@ Be direct but constructive. Focus on preventing typical solo developer pitfalls.
     if (response) {
       this.recordInteraction('challenge', question, prompt, response.content, response.tokensUsed, response.cost);
       
-      try {
-        const parsed = JSON.parse(response.content) as OptimizedAIResponse;
-        
-        // Ensure all required fields are present
-        if (!parsed.assessment || !parsed.feedback || !parsed.next_actions) {
-          // Fallback to simple response
-          return {
-            assessment: 'warning',
-            feedback: response.content,
-            warnings: [],
-            next_actions: ['Review and refine your answer']
-          } as OptimizedAIResponse;
+      // Try to extract JSON from the response
+      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[0]) as OptimizedAIResponse;
+          
+          // Ensure all required fields are present
+          if (!parsed.assessment || !parsed.feedback || !parsed.next_actions) {
+            // Try to create structured response from partial data
+            return this.createStructuredFallback(response.content, parsed, language);
+          }
+          
+          return parsed;
+        } catch (error) {
+          // JSON extraction failed, use intelligent fallback
+          Logger.warning('Failed to parse extracted JSON, using intelligent fallback');
+          return this.createIntelligentFallback(response.content, language);
         }
-        
-        return parsed;
-      } catch (error) {
-        // Fallback if not valid JSON
-        Logger.warning('Failed to parse optimized AI response, using fallback');
-        return {
-          assessment: 'warning',
-          feedback: response.content,
-          warnings: [],
-          next_actions: ['Review the feedback and refine your answer']
-        } as OptimizedAIResponse;
+      } else {
+        // No JSON found in response, use intelligent fallback
+        Logger.warning('No JSON found in response, using intelligent fallback');
+        return this.createIntelligentFallback(response.content, language);
       }
     }
     
     return null;
+  }
+
+  /**
+   * Create structured fallback from partial JSON data
+   */
+  private createStructuredFallback(
+    fullResponse: string,
+    partialData: Partial<OptimizedAIResponse>,
+    language: Language
+  ): OptimizedAIResponse {
+    // Extract suggestion from response text if not in JSON
+    let suggestion = partialData.suggestion;
+    if (!suggestion) {
+      const suggestionMatch = fullResponse.match(
+        language === 'de' 
+          ? /(?:Vorschlag|Empfehlung|Besser):\s*([^\n]+)/i
+          : /(?:Suggestion|Recommendation|Better):\s*([^\n]+)/i
+      );
+      if (suggestionMatch) {
+        suggestion = suggestionMatch[1].trim();
+      }
+    }
+
+    return {
+      assessment: partialData.assessment || 'warning',
+      feedback: partialData.feedback || this.extractCleanFeedback(fullResponse, language),
+      warnings: partialData.warnings || [],
+      suggestion,
+      next_actions: partialData.next_actions || [
+        language === 'de' 
+          ? 'Überprüfen Sie das Feedback und verfeinern Sie Ihre Antwort'
+          : 'Review the feedback and refine your answer'
+      ]
+    } as OptimizedAIResponse;
+  }
+
+  /**
+   * Create intelligent fallback from text response
+   */
+  private createIntelligentFallback(
+    responseText: string,
+    language: Language
+  ): OptimizedAIResponse {
+    // Determine assessment level from keywords
+    let assessment: 'good' | 'warning' | 'critical' = 'warning';
+    const lowerText = responseText.toLowerCase();
+    
+    if (lowerText.includes('critical') || lowerText.includes('kritisch') || 
+        lowerText.includes('🚨') || lowerText.includes('dangerous')) {
+      assessment = 'critical';
+    } else if (lowerText.includes('good') || lowerText.includes('gut') || 
+               lowerText.includes('ready') || lowerText.includes('✅')) {
+      assessment = 'good';
+    }
+
+    // Extract suggestion from text
+    let suggestion: string | undefined;
+    const suggestionPatterns = [
+      /(?:suggestion|vorschlag|empfehlung|recommendation):\s*"?([^"\n]+)"?/i,
+      /(?:try|versuche|besser|better):\s*"?([^"\n]+)"?/i,
+      /"([^"]+)"\s*(?:wäre|würde|would|könnte|could)/i
+    ];
+    
+    for (const pattern of suggestionPatterns) {
+      const match = responseText.match(pattern);
+      if (match) {
+        suggestion = match[1].trim();
+        break;
+      }
+    }
+
+    // Clean feedback text
+    const cleanFeedback = this.extractCleanFeedback(responseText, language);
+
+    // Extract warnings if mentioned
+    const warnings: Warning[] = [];
+    if (lowerText.includes('generic') || lowerText.includes('generisch')) {
+      warnings.push({
+        type: 'too_generic',
+        severity: 'medium',
+        message: language === 'de' ? 'Zu generisch' : 'Too generic'
+      });
+    }
+    if (lowerText.includes('seo')) {
+      warnings.push({
+        type: 'seo_difficult',
+        severity: 'medium',
+        message: language === 'de' ? 'SEO-Herausforderungen' : 'SEO challenges'
+      });
+    }
+
+    return {
+      assessment,
+      feedback: cleanFeedback,
+      warnings,
+      suggestion,
+      next_actions: [
+        language === 'de'
+          ? 'Domain-Verfügbarkeit prüfen'
+          : 'Check domain availability',
+        language === 'de'
+          ? 'Nutzer-Feedback einholen'
+          : 'Get user feedback'
+      ]
+    } as OptimizedAIResponse;
+  }
+
+  /**
+   * Extract clean feedback text without JSON artifacts
+   */
+  private extractCleanFeedback(text: string, language: Language): string {
+    // Remove JSON artifacts
+    let clean = text.replace(/\{[\s\S]*?\}/g, '');
+    
+    // Remove quotes and common JSON remnants
+    clean = clean.replace(/["']/g, '')
+                 .replace(/\n\s*,\s*\n/g, '\n')
+                 .replace(/^\s*,\s*/gm, '')
+                 .replace(/\s*,\s*$/gm, '');
+    
+    // Extract meaningful sentences
+    const sentences = clean.split(/[.!?]+/)
+                          .map(s => s.trim())
+                          .filter(s => s.length > 20);
+    
+    if (sentences.length > 0) {
+      return sentences.join('. ') + '.';
+    }
+    
+    // Fallback message
+    return language === 'de'
+      ? 'Bitte überprüfen Sie Ihre Antwort basierend auf den MVP-Prinzipien.'
+      : 'Please review your answer based on MVP principles.';
   }
 
   /**
